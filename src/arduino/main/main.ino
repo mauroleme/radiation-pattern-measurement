@@ -39,7 +39,15 @@ const uint8_t RF_PIN            = A15;  // Radiofrequency module
 // Constants definitions
 const size_t samples            = 10;   // Number of samples that are read for
                                         // each request
-const enum directions { RIGHT = LOW, LEFT = HIGH } direction;
+enum motor_direction { RIGHT = LOW, LEFT = HIGH };
+
+// Function prototypes
+void home_motor_to_origin();
+void rotate_motor_to_sample();
+void rotate_motor_step(motor_direction dir);
+void capture_sensor_data(uint16_t *sensor_values, size_t samples);
+void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
+motor_direction flip_direction(const motor_direction direction);
 
 void setup()
 {
@@ -61,7 +69,7 @@ void setup()
     Serial.println("Serial port initialized successfully!");
 
     // Set motor to the origin
-    set_motor_to_origin();
+    home_motor_to_origin();
 }
 
 void loop()
@@ -84,19 +92,14 @@ void loop()
             break;
         case 1:
             uint16_t sensor_values[samples] = {0};
-            motor_sampling_handler();
-            read_sensor(sensor_values, samples);
-            serial_write(sensor_values, samples);
+            rotate_motor_to_sample();
+            capture_sensor_data(sensor_values, samples);
+            transmit_sensor_data(sensor_values, samples);
             
             mode = 0;
             break;
         default:
-            /* The buffer contains a warning string with the command received:
-             *      - 46 chars for the literal string;
-             *      - 11 chars to represent the number;
-             *      - 1 char for null terminator.
-             */
-            char error[58];
+            char error[64];
             sprintf(error, "Unknown command: %d. Setting back to listen mode",
                             mode);
             Serial.println(error);
@@ -106,94 +109,88 @@ void loop()
     }
 }
 
-void set_motor_to_origin()
+void home_motor_to_origin()
 {
     Serial.println("Starting search for motor origin...");
 
-    /*
-     * 1º passo - Ler o valor do sensor
-     *      1.1º passo - Caso o sensor detete um valor abaixo do limiar, girar
-     *                   para o sentido contrário até o valor do sensor estar
-     *                   acima do limiar. Caso contrário, se o valor de partida
-     *                   estiver acima do limiar, não se faz esta inicialização
-     * 2º passo - Quando o valor do sensor for abaixo do limiar, guarda o
-     *            passo para o qual houve esta deteção e continua a girar para
-     *            a mesma direção
-     * 3º passo - Quando o valor do sensor for acima do liminar, guarda o
-     *            passo para o qual houve esta detecção
+    /* Homes the motor to its origin position by:
+     *      1. Rotating the motor until the Hall sensor detects a magnetic
+     *         threshold. If the sensor already detects a value bellow the
+     *         magnetic threshold, rotate the motor backwards until it doesn't
+     *         detect it anymore.
+     *      2. Finding the center point of the detected magnetic range.
+     *      3. Returning the motor to this center position.
      */
-   
-    static const direction default_direction    = RIGHT;
-    uint16_t               threshold            = 50;
-    uint16_t               steps_completed      = 0;
-    int16_t                start_step           = -1;
-    int16_t                end_step             = -1;
-    const uint16_t         MAX_STEPS            = 3200; // 16 * 200
 
-    while (analogRead(HALL_PIN) < threshold) { motor_step(!default_direction); }
+    motor_direction         default_direction = RIGHT;
+    const uint16_t          THRESHOLD         = 50;
+    const uint16_t          MAX_STEPS         = 3200; // 16 * 200
+    
+    uint16_t                steps_completed   = 0;
+    int16_t                 start_step        = -1;
+    int16_t                 end_step          = -1;
+
+    while (analogRead(HALL_PIN) < THRESHOLD) { rotate_motor_step(flip_direction(default_direction)); }
 
     for (; steps_completed < MAX_STEPS; steps_completed++)
     {
         uint16_t sensor_value = analogRead(HALL_PIN);
 
-        if (sensor_value < threshold && start_step == -1)
+        if (sensor_value < THRESHOLD && start_step == -1)
         {
             start_step = steps_completed;
         }
-        else if (sensor_value >= threshold && start_step != -1)
+        else if (sensor_value >= THRESHOLD && start_step != -1)
         {
             end_step = steps_completed;
             break;
         }
-        motor_step(default_direction);
+        rotate_motor_step(default_direction);
     }
 
     uint16_t central_step = (start_step + end_step) / 2;
     for (; central_step >= 0; central_step--)
     {
-        motor_step(!default_direction);
+        rotate_motor_step(flip_direction(default_direction));
     }
+
+    Serial.println("Motor homed.");
 }
 
-void motor_sampling_handler()
+void rotate_motor_to_sample()
 {
-    static const uint8_t MICROSTEPS_TO_DEG  = 16;   // 1 degree == 16 microsteps
-    static const uint8_t MAX_ANGLE          = 180;
-    static int16_t       current_angle      = 0;    // define it as 0 since we suppose
-                                                    // that the motor has been homed
-    static direction    dir                 = RIGHT;
+    static const uint8_t    MICROSTEPS_TO_DEG   = 16;   // 1 degree == 16 microsteps
+    static const uint8_t    MAX_ANGLE           = 180;
+    static int16_t          current_angle       = 0;    // define it as 0 since we suppose
+                                                        // that the motor has been homed
+    static motor_direction  direction           = RIGHT;
    
     // Set the motor back to home
     int16_t previous_angle = current_angle;
     if (current_angle == MAX_ANGLE || current_angle == -MAX_ANGLE)
     {
-        dir = !dir;
+        direction = flip_direction(direction);
         for (size_t i = 0; i < MICROSTEPS_TO_DEG * current_angle; i++)
         {
-            motor_step(dir);
-            current_angle -= i % (MICRO_STEPS_TO_DEG - 1);
+            rotate_motor_step(direction);
         }
-
+        current_angle = 0;
     }
    
-    // If the motor was in the MINIMUM ANGLE, restart the sampling at 0 degrees
-    // i.e. jump the iteration of a degree
-    // In the future, two motors will be used, so when it reaches the end of
-    // the minimum degree value, the sencond motor iterates to the next angle
     if (previous_angle == -MAX_ANGLE)
     {
         return;
     }
 
-    // Move the motor 1 degree (16 microsteps)
+    // Rotate the motor by 1 degree in the current direction
     for (size_t i = 0; i < MICROSTEPS_TO_DEG; i++)
     {
-        motor_step(dir);
+        rotate_motor_step(direction);
     }
     current_angle++;
 }
 
-void motor_step(const direction dir)
+void rotate_motor_step(const motor_direction dir)
 {
     digitalWrite(M1_DIR_PIN, dir);
 
@@ -203,7 +200,7 @@ void motor_step(const direction dir)
     delayMicroseconds(1000);
 }
 
-void read_sensor(uint16_t *sensor_values, size_t samples)
+void capture_sensor_data(uint16_t *sensor_values, size_t samples)
 {
     for (size_t i = 0; i < samples; i++) 
     {
@@ -211,7 +208,8 @@ void read_sensor(uint16_t *sensor_values, size_t samples)
         delay(10);
     }
 }
-void serial_write(uint16_t *sensor_values, size_t samples)
+
+void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
 {
     /* The buffer contains the values read from the sensor separated by commas:
      *      - 5 chars for each number;
@@ -232,4 +230,16 @@ void serial_write(uint16_t *sensor_values, size_t samples)
     }
     
     Serial.println(buffer);
+}
+
+motor_direction flip_direction(const motor_direction direction)
+{
+  if (direction == RIGHT)
+  {
+    return LEFT;
+  }
+  else
+  {
+    return RIGHT;
+  }
 }
