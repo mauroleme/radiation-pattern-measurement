@@ -15,9 +15,11 @@ responsible for motor control, data acquisition and transmission;
 the microcontroller and building the antenna's radiation pattern model.
 
 ## Hardware Components
+This project includes following hardware components:
 - **Microcontroller**       : Arduino Mega 2560 Rev3;
 - **Stepper Motor Driver**  : DRV8825 driver module;
-- **RF Sensor**             : RF radiation pattern measurement sensor;
+- **RF Sensor**             : RF radiation pattern measurement sensor.
 
+## Contributions
 Contributions to improve this project are welcome! Feel free to open issues or
 submite pull requests.
