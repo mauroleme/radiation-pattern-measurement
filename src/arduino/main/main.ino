@@ -165,27 +165,28 @@ void home_motor_to_origin()
 void rotate_motor_to_sample()
 {
     static const uint8_t    MICROSTEPS_TO_DEG   = 16;
-    static const uint8_t    MAX_ANGLE           = 180;
+    static const uint8_t    ANGLE_BOUND         = 180;
     static int16_t          current_angle       = 0;
     static motor_direction  direction           = RIGHT;
    
     // Set the motor back to home if it reached the limits
-    int16_t previous_angle = current_angle;
-    if (current_angle == MAX_ANGLE || current_angle == -MAX_ANGLE)
+    if (current_angle == ANGLE_BOUND || current_angle == -ANGLE_BOUND)
     {
+        bool resetting_from_min_angle = (current_angle == -ANGLE_BOUD);
+
         direction = flip_direction(direction);
         for (size_t i = 0; i < MICROSTEPS_TO_DEG * current_angle; i++)
         {
             rotate_motor_step(direction);
         }
         current_angle = 0;
-    }
-   
-    // Don't rotate the motor by 1º once it returns from the -180º limit,
-    // forcing it to start sampling back from 0º
-    if (previous_angle == -MAX_ANGLE)
-    {
-        return;
+    
+        // Don't rotate the motor by 1º once it returns from the -180º limit,
+        // forcing it to start sampling back from 0º
+        if (resetting_from_min_angle)
+        {
+            return;
+        }
     }
 
     // Rotate the motor by 1º in the current direction
@@ -193,7 +194,7 @@ void rotate_motor_to_sample()
     {
         rotate_motor_step(direction);
     }
-    current_angle++;
+    current_angle += (direction == RIGHT) ? 1 : -1;
 }
 
 void rotate_motor_step(const motor_direction dir)
