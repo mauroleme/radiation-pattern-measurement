@@ -38,7 +38,7 @@ const uint8_t RF_PIN        = A15;  // Radiofrequency module
 
 // Constants definitions
 const size_t samples        = 10;   // Number of samples that are read for
-                                        // each request
+                                    // each request
 enum motor_direction { RIGHT = LOW, LEFT = HIGH };
 
 // Function prototypes
@@ -112,21 +112,20 @@ void loop()
 void home_motor_to_origin()
 {
     Serial.println("Starting search for motor origin...");
-
+    
     /* Homes the motor to its origin position by:
-     *      1. Rotating the motor until the Hall sensor detects a magnetic
-     *         threshold. If the sensor already detects a value bellow the
-     *         magnetic threshold, rotate the motor backwards until it doesn't
-     *         detect it anymore.
-     *      2. Finding the center point of the detected magnetic range.
-     *      3. Returning the motor to this center position.
+     *   1. Rotating the motor until the Hall sensor detects a magnetic threshold.
+     *      - If the sensor is already below the threshold, rotate the motor 
+     *        backward until the sensor exits the magnetic range.
+     *   2. Identifying the center of the magnetic range:
+     *      - Rotate the motor to find the start and end points of the range
+     *        where the sensor is below the threshold.
+     *   3. Returning the motor to the center of this range.
      */
 
     motor_direction default_direction = RIGHT;
     const uint16_t  THRESHOLD         = 50;
     const uint16_t  MAX_STEPS         = 3200; // 16 * 200
-    
-    uint16_t        steps_completed   = 0;
     int16_t         start_step        = -1;
     int16_t         end_step          = -1;
 
@@ -137,7 +136,7 @@ void home_motor_to_origin()
         rotate_motor_step(flip_direction(default_direction)); 
     }
 
-    for (; steps_completed < MAX_STEPS; steps_completed++)
+    for (uint16_t steps_completed = 0; steps_completed < MAX_STEPS; steps_completed++)
     {
         uint16_t sensor_value = analogRead(HALL_PIN);
 
@@ -153,8 +152,7 @@ void home_motor_to_origin()
         rotate_motor_step(default_direction);
     }
 
-    uint16_t central_step = (start_step + end_step) / 2;
-    for (; central_step >= 0; central_step--)
+    for (uint16_t central_step = (start_step + end_step) / 2; central_step > 0; central_step--)
     {
         rotate_motor_step(flip_direction(default_direction));
     }
