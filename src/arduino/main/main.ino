@@ -121,8 +121,7 @@ void serial_write(uint16_t *sensor_values, size_t samples)
     
     for (size_t i = 0; i < samples; i++)
     {
-        index += sprintf(&buffer[index], "%u", sensor_values[i]);
-        buffer[index++] = ',';
+        index += sprintf(&buffer[index], "%u,", sensor_values[i]);
     }
     
     if (index)
