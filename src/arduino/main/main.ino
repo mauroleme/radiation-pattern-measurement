@@ -172,7 +172,7 @@ void rotate_motor_to_sample()
     // Set the motor back to home if it reached the limits
     if (current_angle == ANGLE_BOUND || current_angle == -ANGLE_BOUND)
     {
-        bool resetting_from_min_angle = (current_angle == -ANGLE_BOUD);
+        bool resetting_from_min_angle = (current_angle == -ANGLE_BOUND);
 
         direction = flip_direction(direction);
         for (size_t i = 0; i < MICROSTEPS_TO_DEG * current_angle; i++)
