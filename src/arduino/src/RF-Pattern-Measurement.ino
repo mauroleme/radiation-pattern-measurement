@@ -109,7 +109,7 @@ void realizar_medicoes_360() {
       if (amostra < 9) Serial.print(", ");
     }
     Serial.println();
-    delay(10); // Atraso para evitar sobrecarga do buffer
+    delay(10); // Atraso para evitar sobrecarga do buffer, mas eu não gosto desse delay aqui, acho que existe solução melhor
   }
   Serial.println("Envio completo.");
 }
@@ -128,7 +128,7 @@ void realizar_medicoes(int inicio, int fim, int matriz[][10], bool sentidoHorari
     // Coleta 10 amostras de RF para o ângulo atual
     for (int amostra = 0; amostra < numAmostras; amostra++) {
       matriz[angulo][amostra] = analogRead(rfPin);
-      delay(10); // Pequeno atraso para estabilizar a leitura
+      delay(10); // Pequeno atraso para estabilizar a leitura, eu também não gosto desse delay aqui
     }
   }
 }
