@@ -123,11 +123,11 @@ void home_motor_to_origin()
      *   3. Returning the motor to the center of this range.
      */
 
-    motor_direction default_direction = RIGHT;
-    const uint16_t  THRESHOLD         = 50;
-    const uint16_t  MAX_STEPS         = 3200; // 16 * 200
-    int16_t         start_step        = -1;
-    int16_t         end_step          = -1;
+    static motor_direction default_direction  = RIGHT;
+    static const uint16_t  THRESHOLD          = 50;
+    static const uint16_t  MAX_STEPS          = 3200; // 16 * 200
+    int16_t                start_step         = -1;
+    int16_t                end_step           = -1;
 
     // Special case where the sensor might already be detecting the magnet,
     // so the motor should rotate backwards until it doesn't detect it anymore
