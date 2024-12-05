@@ -1,5 +1,5 @@
 /*
- * File     : main.cpp
+ * File     : main.ino
  * Author   : Mauro Leme
  * Date     : December 12, 2024
  * Purpose  : Retrieves sensor data and sends it via serial port.
@@ -86,8 +86,8 @@ void loop()
             break;
         case 1:
             uint16_t sensor_values[samples] = {0};
-            perform_sampling(&sensor_values, samples);
-            serial_write(&sensor_values, samples);
+            perform_sampling(sensor_values, samples);
+            serial_write(sensor_values, samples);
             
             mode = 0;
             break;
