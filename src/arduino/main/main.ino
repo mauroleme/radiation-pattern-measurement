@@ -29,17 +29,18 @@
 
 #include <Arduino.h>
 
+
+enum motor_direction { RIGHT = LOW, LEFT = HIGH };
+
 // PIN definitions
-const uint8_t M1_DIR_PIN    = 7;    // Motor direction
-const uint8_t M1_STEP_PIN   = 6;    // Motor step
-const uint8_t M1_EN_PIN     = 8;    // Motor enable
-const uint8_t HALL_PIN      = A0;   // Hall sensor
-const uint8_t RF_PIN        = A15;  // Radiofrequency module
+const uint8_t         M1_DIR_PIN        = 7;    // Motor direction
+const uint8_t         M1_STEP_PIN       = 6;    // Motor step
+const uint8_t         M1_EN_PIN         = 8;    // Motor enable
+const uint8_t         HALL_PIN          = A0;   // Hall sensor
+const uint8_t         RF_PIN            = A15;  // Radiofrequency module
 
 // Constants definitions
-const size_t samples        = 10;   // Number of samples that are read for
-                                    // each request
-enum motor_direction { RIGHT = LOW, LEFT = HIGH };
+const motor_direction DEFAULT_DIRECTION = RIGHT;
 
 // Function prototypes
 void home_motor_to_origin();
@@ -91,10 +92,12 @@ void loop()
             }
             break;
         case 1:
-            uint16_t sensor_values[samples] = {0};
-            capture_sensor_data(sensor_values, samples);
+            const size_t  SAMPLES                 = 10;
+            uint16_t      sensor_values[SAMPLES]  = {0};
+            
+            capture_sensor_data(sensor_values, SAMPLES);
             rotate_motor_to_next_sample();
-            transmit_sensor_data(sensor_values, samples);
+            transmit_sensor_data(sensor_values, SAMPLES);
             
             mode = 0;
             break;
@@ -123,17 +126,16 @@ void home_motor_to_origin()
      *   3. Returning the motor to the center of this range.
      */
 
-    static motor_direction default_direction  = RIGHT;
-    static const uint16_t  THRESHOLD          = 50;
-    static const uint16_t  MAX_STEPS          = 3200; // 16 * 200
-    int16_t                start_step         = -1;
-    int16_t                end_step           = -1;
+    const uint16_t  THRESHOLD  = 50;
+    const uint16_t  MAX_STEPS  = 3200; // 16 * 200
+    int16_t         start_step = -1;
+    int16_t         end_step   = -1;
 
     // Special case where the sensor might already be detecting the magnet,
     // so the motor should rotate backwards until it doesn't detect it anymore
     while (analogRead(HALL_PIN) < THRESHOLD) 
     { 
-        rotate_motor_step(flip_direction(default_direction)); 
+        rotate_motor_step(flip_direction(DEFAULT_DIRECTION)); 
     }
 
     for (uint16_t steps_completed = 0; steps_completed < MAX_STEPS; steps_completed++)
@@ -149,12 +151,12 @@ void home_motor_to_origin()
             end_step = steps_completed;
             break;
         }
-        rotate_motor_step(default_direction);
+        rotate_motor_step(DEFAULT_DIRECTION);
     }
 
     for (uint16_t central_step = (start_step + end_step) / 2; central_step > 0; central_step--)
     {
-        rotate_motor_step(flip_direction(default_direction));
+        rotate_motor_step(flip_direction(DEFAULT_DIRECTION));
     }
 
     Serial.println("Motor homed.");
@@ -174,29 +176,27 @@ void rotate_motor_to_next_sample()
     static const uint8_t    MICROSTEPS_TO_DEG   = 16;
     static const uint8_t    ANGLE_BOUND         = 180;
     static int16_t          current_angle       = 0;
-    static motor_direction  direction           = RIGHT;
+    static motor_direction  direction           = DEFAULT_DIRECTION;
    
-    // Set the motor back to home if it reached the limits
-    if (current_angle == ANGLE_BOUND || current_angle == -ANGLE_BOUND)
+    // Reset motor to home if angle limits are reached
+    if (abs(current_angle) == ANGLE_BOUND)
     {
-        bool resetting_from_min_angle = (current_angle == -ANGLE_BOUND);
-
+        // Rotate back to home
         direction = flip_direction(direction);
-        for (size_t i = 0; i < MICROSTEPS_TO_DEG * current_angle; i++)
+        for (size_t i = 0; i < MICROSTEPS_TO_DEG * abs(current_angle); i++)
         {
             rotate_motor_step(direction);
         }
         current_angle = 0;
     
-        // Don't rotate the motor by 1º once it returns from the -180º limit,
-        // forcing it to start sampling back from 0º
-        if (resetting_from_min_angle)
+        // Skip the initial rotation after performing 360°
+        if (direction == DEFAULT_DIRECTION)
         {
             return;
         }
     }
 
-    // Rotate the motor by 1º in the current direction
+    // Rotate the motor by 1° in the current direction
     for (size_t i = 0; i < MICROSTEPS_TO_DEG; i++)
     {
         rotate_motor_step(direction);
