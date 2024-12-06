@@ -43,9 +43,9 @@ enum motor_direction { RIGHT = LOW, LEFT = HIGH };
 
 // Function prototypes
 void home_motor_to_origin();
-void rotate_motor_to_sample();
-void rotate_motor_step(motor_direction dir);
 void capture_sensor_data(uint16_t *sensor_values, size_t samples);
+void rotate_motor_to_next_sample();
+void rotate_motor_step(motor_direction dir);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
 motor_direction flip_direction(const motor_direction direction);
 
@@ -92,8 +92,8 @@ void loop()
             break;
         case 1:
             uint16_t sensor_values[samples] = {0};
-            rotate_motor_to_sample();
             capture_sensor_data(sensor_values, samples);
+            rotate_motor_to_next_sample();
             transmit_sensor_data(sensor_values, samples);
             
             mode = 0;
@@ -160,7 +160,16 @@ void home_motor_to_origin()
     Serial.println("Motor homed.");
 }
 
-void rotate_motor_to_sample()
+void capture_sensor_data(uint16_t *sensor_values, size_t samples)
+{
+    for (size_t i = 0; i < samples; i++) 
+    {
+        sensor_values[i] = analogRead(RF_PIN);
+        delay(10);
+    }
+}
+
+void rotate_motor_to_next_sample()
 {
     static const uint8_t    MICROSTEPS_TO_DEG   = 16;
     static const uint8_t    ANGLE_BOUND         = 180;
@@ -203,15 +212,6 @@ void rotate_motor_step(const motor_direction dir)
     delayMicroseconds(10);
     digitalWrite(M1_STEP_PIN, LOW);
     delayMicroseconds(1000);
-}
-
-void capture_sensor_data(uint16_t *sensor_values, size_t samples)
-{
-    for (size_t i = 0; i < samples; i++) 
-    {
-        sensor_values[i] = analogRead(RF_PIN);
-        delay(10);
-    }
 }
 
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
