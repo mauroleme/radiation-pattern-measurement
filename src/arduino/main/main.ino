@@ -45,7 +45,7 @@ enum motor_direction { RIGHT = LOW, LEFT = HIGH };
 void home_motor_to_origin();
 void capture_sensor_data(uint16_t *sensor_values, size_t samples);
 void rotate_motor_to_next_sample();
-void rotate_motor_step(motor_direction dir);
+void rotate_motor_step(const motor_direction direction);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
 motor_direction flip_direction(const motor_direction direction);
 
@@ -204,9 +204,9 @@ void rotate_motor_to_next_sample()
     current_angle += (direction == RIGHT) ? 1 : -1;
 }
 
-void rotate_motor_step(const motor_direction dir)
+void rotate_motor_step(const motor_direction direction)
 {
-    digitalWrite(M1_DIR_PIN, dir);
+    digitalWrite(M1_DIR_PIN, direction);
 
     digitalWrite(M1_STEP_PIN, HIGH);
     delayMicroseconds(10);
