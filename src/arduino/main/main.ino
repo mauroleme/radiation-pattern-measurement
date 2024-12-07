@@ -83,8 +83,8 @@ void setup()
 void loop()
 {
     /* State machine to handle different modes based on serial input:
-     *      - LISTEN  : Waiting for serial input. Once the input is received, it
-     *                  switches to the next mode.
+     *      - LISTEN  : Waiting for serial input. Once the input is received,
+     *                  it switches to the next mode.
      *      - PROCESS : Rotates the motors and samples the sensor values. After
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
@@ -123,12 +123,13 @@ bool home_motor_to_origin()
     Serial.println("Starting search for motor origin...");
     
     /* Homes the motor to its origin position by:
-     *      - Step 1  : Rotating the motor until the Hall sensor detects a magnetic 
-     *                  threshold. 
-     *                    - If the sensor is already below the threshold, rotate the
-     *                    motor backward until the sensor exits the magnetic range.
-     *      - Step 2  : Rotate the motor to find the start and end points of the 
-     *                  range where the sensor is below the threshold.
+     *      - Step 1  : Rotating the motor until the Hall sensor detects a 
+     *                  magnetic threshold. 
+     *                    - If the sensor is already below the threshold,
+     *                    rotate the motor backward until the sensor exits the
+     *                    magnetic range.
+     *      - Step 2  : Rotate the motor to find the start and end points of 
+     *                  the range where the sensor is below the threshold.
      *      - Step 3  : Returning the motor to the center of this range.
      */
 
@@ -168,7 +169,8 @@ bool home_motor_to_origin()
         return false;
     }
 
-    for (uint16_t central_step = (start_step + end_step) / 2; central_step > 0; central_step--)
+    for (uint16_t central_step = (start_step + end_step) / 2; central_step > 0;
+         central_step--)
     {
         rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION));
     }
