@@ -34,18 +34,18 @@ enum motor_direction  { RIGHT = LOW, LEFT = HIGH };
 enum system_state     { LISTEN = 0, PROCESS = 1 };
 
 // PIN definitions
-const uint8_t         M1_DIR_PIN        = 7;    // Motor direction
-const uint8_t         M1_STEP_PIN       = 6;    // Motor step
-const uint8_t         M1_EN_PIN         = 8;    // Motor enable
-const uint8_t         HALL_PIN          = A13;  // Hall sensor
-const uint8_t         RF_PIN            = A15;  // Radiofrequency module
+const uint8_t           M1_DIR_PIN          = 7;    // Motor direction
+const uint8_t           M1_STEP_PIN         = 6;    // Motor step
+const uint8_t           M1_EN_PIN           = 8;    // Motor enable
+const uint8_t           HALL_PIN            = A13;  // Hall sensor
+const uint8_t           RF_PIN              = A15;  // Radiofrequency module
 
 // Constants definitions
-const uint8_t         MICROSTEPS_TO_DEG = 16;
-const int16_t          MAX_ANGLE         = 180;
-const int16_t          MIN_ANGLE         = -179;
-const size_t          SAMPLES           = 10;
-const motor_direction DEFAULT_DIRECTION = RIGHT;
+const uint8_t           MICROSTEPS_TO_DEG   = 16;
+const int16_t           MAX_ANGLE           = 180;
+const int16_t           MIN_ANGLE           = -179;
+const size_t            SAMPLES             = 10;
+const motor_direction   DEFAULT_DIRECTION   = RIGHT;
 
 // Function prototypes
 bool home_motor_to_origin();
@@ -90,7 +90,7 @@ void loop()
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
      */
-    static int mode = LISTEN;
+    static uint8_t mode = LISTEN;
     
     if (mode == LISTEN)
     {
