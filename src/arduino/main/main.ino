@@ -89,32 +89,33 @@ void loop()
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
      */
-    static system_state mode = LISTEN;
-    switch (mode)
+    static int mode = LISTEN;
+    
+    if (mode == LISTEN)
     {
-        case LISTEN:
-            if (Serial.available() > 0)
+        if (Serial.available() > 0)
             {
                 mode = Serial.parseInt();
             }
-            break;
-        case PROCESS:
-            uint16_t sensor_values[SAMPLES]  = {0};
+    }
+    else if (mode == PROCESS)
+    {
+        uint16_t sensor_values[SAMPLES]  = {0};
             
-            capture_sensor_data(sensor_values, SAMPLES);
-            rotate_motor_to_next_sample();
-            transmit_sensor_data(sensor_values, SAMPLES);
+        capture_sensor_data(sensor_values, SAMPLES);
+        rotate_motor_to_next_sample();
+        transmit_sensor_data(sensor_values, SAMPLES);
             
-            mode = LISTEN;
-            break;
-        default:
-            char error[64];
-            sprintf(error, "Unknown command: %d. Setting back to LISTEN mode",
-                            mode);
-            Serial.println(error);
+        mode = LISTEN;
+    }
+    else
+    {
+        char error[64];
+        sprintf(error, "Unknown command: %d. Setting back to LISTEN mode",
+                       mode);
+        Serial.println(error);
             
-            mode = LISTEN;
-            break;
+        mode = LISTEN;
     }
 }
 
