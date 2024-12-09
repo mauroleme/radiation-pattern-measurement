@@ -42,7 +42,8 @@ const uint8_t         RF_PIN            = A15;  // Radiofrequency module
 
 // Constants definitions
 const uint8_t         MICROSTEPS_TO_DEG = 16;
-const uint8_t         ANGLE_BOUND       = 180;
+const uint8_t         MAX_ANGLE         = 180;
+const uint8_t         MIN_ANGLE         = -179;
 const size_t          SAMPLES           = 10;
 const motor_direction DEFAULT_DIRECTION = RIGHT;
 
@@ -195,11 +196,12 @@ void rotate_motor_to_next_sample()
     static motor_direction  direction     = DEFAULT_DIRECTION;
    
     // Reset motor to home if angle limits are reached
-    if (abs(current_angle) == ANGLE_BOUND)
+    if (current_angle == MAX_ANGLE || current_angle == MIN_ANGLE)
     {
         direction = (motor_direction)(!direction);
         // Rotate back to home
-        for (size_t i = 0; i < MICROSTEPS_TO_DEG * abs(current_angle); i++)
+        uint16_t abs_current_angle = abs(current_angle);
+        for (size_t i = 0; i < MICROSTEPS_TO_DEG * abs_current_angle; i++)
         {
             rotate_motor_step(direction);
         }
