@@ -169,7 +169,7 @@ bool home_motor_to_origin()
         return false;
     }
 
-    for (uint16_t central_step = (start_step + end_step) / 2; central_step > 0;
+    for (uint16_t central_step = (end_step - start_step) / 2; central_step > 0;
          central_step--)
     {
         rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION));
