@@ -37,7 +37,7 @@ enum system_state     { LISTEN = 0, PROCESS = 1 };
 const uint8_t         M1_DIR_PIN        = 7;    // Motor direction
 const uint8_t         M1_STEP_PIN       = 6;    // Motor step
 const uint8_t         M1_EN_PIN         = 8;    // Motor enable
-const uint8_t         HALL_PIN          = A0;   // Hall sensor
+const uint8_t         HALL_PIN          = A13;  // Hall sensor
 const uint8_t         RF_PIN            = A15;  // Radiofrequency module
 
 // Constants definitions
