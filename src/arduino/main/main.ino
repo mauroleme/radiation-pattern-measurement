@@ -90,14 +90,14 @@ void loop()
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
      */
-    static uint8_t mode = LISTEN;
+    static int mode = LISTEN;
     
     if (mode == LISTEN)
     {
         if (Serial.available() > 0)
-            {
-                mode = Serial.parseInt();
-            }
+        {
+            mode = Serial.parseInt();
+        }
     }
     else if (mode == PROCESS)
     {
