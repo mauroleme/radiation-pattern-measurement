@@ -1,37 +1,57 @@
-clear;                                                      % Limpa variáveis do workspace
-clc;                                                        % Limpa o Command Window
+clear;                                                          % Clear variables from workspace
+clc;                                                            % Cleat the command window
 
-% Configuração da porta serial
-arduinoPort = "COM7";                                       % Porta COM usada pelo Arduino
-baudRate    = 115200;                                       % Taxa de comunicação serial (bps)
+% Serial port configuration
+arduinoPort = "COM7";                                           % COM port used by Arduino
+baudRate    = 115200;                                           % Serial communication baudrate (bps)
 
-% Inicializa a porta serial se ainda não estiver configurada
-if ~exist('porto', 'var')
-    porto           = serialport(arduinoPort, baudRate);    % Configura a porta serial
-    porto.Timeout   = 30;                                   % Define tempo limite de espera
-    configureTerminator(porto, "CR/LF");                    % Define terminador de linha
+% Initialize the serial port if it is not already configured
+if ~exist('serialPort', 'var')
+    serialPort          = serialport(arduinoPort, baudRate);    % Configure the serial port
+    serialPort.Timeout  = 30;                                   % Set the timeout duration (seconds)
+    configureTerminator(serialPort, "CR/LF");                   % Set the line terminator
 end
-pause(10);                                                  % Aguarda inicialização do Arduino
-disp("Solicitando medições para 360°...");
 
-% Inicializa a matriz de resultados
-numAmostrasPorGrau  = 10;
-valores             = zeros(360, 1);                        % Vetor para armazenar as medições totais
-valoresDoGrau       = zeros(numAmostrasPorGrau, 1);         % Vetor para armazenar as medições de um grau
-
-for i=1:360
+disp("Waiting for Arduino to initialize...");
+while true
     try
-        valoresDoGrau   = str2double(split(writeread(porto,"1"), ','));
+        response = readline(serialPort);                        % Read response from Arduino
+        if strcmp(response, "Motor homed.");                    % Check for successful initialization
+            break;
+        elseif strncmp(response, "Error", 5);                   % Check for error messages
+            error("Error during setup.");
+        end
     catch
-        valoresDoGrau   = -1;
+        pause(0.5);                                             % Retry after a short delay
     end
-    valores(i) = mean(valoresDoGrau);
-    disp("Valor:");
-    disp(valores(i));
-    pause(0.1);
 end
 
-disp("Vetor de medições coletadas:");
-disp(valores);                                              % Mostra a o vetor coletado
 
-clear porto;                                                % Fecha e limpa a configuração da porta serial
+disp("Resquesting measurements for 360 degrees...");
+
+% Initialize the result vector
+samplesPerDegree        = 10;
+measurementValues       = zeros(360, 1);                        % Vector to store final measurements
+
+for degree = 1:360
+    try
+        response                = writeread(serialPort, "1");
+        currentDegreeSamples    = str2double(split(response, ','));
+        if any(isnan(currentDegreeSamples))
+            error("Invalind response format.");
+        end
+    catch
+        currentDegreeSamples    = -1 * ones(samplesPerDegree, 1);
+    end
+    measurementValues(degree)   = mean(currentDegreeSamples);
+    fprintf("Degree %3d: Value %.2f\n", degree, measurementValues(degree));
+end
+
+disp("Collected measurements:");
+disp(measurementValues);
+
+% TODO: Reverse the indexing logic for position 181 (180 degrees) onward, as
+%       the returned values are received in a circular order: starting from -1
+%       degree (359 degrees) and progressing to 179 degrees (181 degrees)
+
+clear port;                                                     % Close the serial port
