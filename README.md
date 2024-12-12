@@ -16,9 +16,10 @@ the microcontroller and building the antenna's radiation pattern model.
 
 ## Hardware Components
 This project includes following hardware components:
-- **Microcontroller**       : Arduino Mega 2560 Rev3;
-- **Stepper Motor Driver**  : DRV8825 driver module;
-- **RF Sensor**             : RF radiation pattern measurement sensor.
+- **Microcontroller**           : Arduino Mega 2560 Rev3;
+- **Stepper Motor Driver**      : DRV8825;
+- **Radio Frequency Detector**  : 0.1-2.5 GHz Logaritmic Detector RF Power
+                                  Meter Radio Frequency Detection Module.
 
 ## Contributions
 Contributions to improve this project are welcome! Feel free to open issues or
