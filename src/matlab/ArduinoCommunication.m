@@ -33,7 +33,7 @@ disp("Resquesting measurements for 360 degrees...");
 samplesPerDegree        = 10;
 measurementValues       = zeros(360, 1);                        % Vector to store final measurements
 
-for degree = 1:360
+for degree = 0:359
     try
         response                = writeread(serialPort, "1");
         currentDegreeSamples    = str2double(split(response, ','));
@@ -43,8 +43,8 @@ for degree = 1:360
     catch
         currentDegreeSamples    = -1 * ones(samplesPerDegree, 1);
     end
-    measurementValues(degree)   = mean(currentDegreeSamples);
-    fprintf("Degree %3d: Value %.2f\n", degree, measurementValues(degree));
+    measurementValues(degree + 1)   = mean(currentDegreeSamples);
+    fprintf("Degree %3d: Value %.2f\n", degree, measurementValues(degree + 1));
 end
 
 disp("Collected measurements:");
