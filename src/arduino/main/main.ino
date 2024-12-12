@@ -70,14 +70,14 @@ void setup()
     // Setting up the serial port
     Serial.setTimeout(1000);
     Serial.begin(115200);
-    while (!Serial) {}
+    while (!Serial);
     Serial.println("Serial port initialized successfully!");
 
     // Set motor to the origin
     if (home_motor_to_origin() == false)
     {
         Serial.println("Error: Failed to detect the magnet center.");
-        while (true) {}
+        while (true);
     }
 }
 
