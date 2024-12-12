@@ -1,16 +1,14 @@
 clear;                                                          % Clear variables from workspace
-clc;                                                            % Cleat the command window
+clc;                                                            % Clear the command window
 
 % Serial port configuration
 arduinoPort = "COM7";                                           % COM port used by Arduino
 baudRate    = 115200;                                           % Serial communication baudrate (bps)
 
-% Initialize the serial port if it is not already configured
-if ~exist('serialPort', 'var')
-    serialPort          = serialport(arduinoPort, baudRate);    % Configure the serial port
-    serialPort.Timeout  = 30;                                   % Set the timeout duration (seconds)
-    configureTerminator(serialPort, "CR/LF");                   % Set the line terminator
-end
+% Initialize the serial port
+serialPort          = serialport(arduinoPort, baudRate);        % Configure the serial port
+serialPort.Timeout  = 30;                                       % Set the timeout duration (seconds)
+configureTerminator(serialPort, "CR/LF");                       % Set the line terminator
 
 disp("Waiting for Arduino to initialize...");
 while true
