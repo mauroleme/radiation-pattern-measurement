@@ -46,6 +46,7 @@ const int16_t           MAX_ANGLE           = 179;
 const int16_t           MIN_ANGLE           = -180;
 const size_t            SAMPLES             = 10;
 const motor_direction   DEFAULT_DIRECTION   = RIGHT;
+const double            DEFAULT_VELOCITY    = 1.09; // Angular velocity (rad/s)
 
 // Function prototypes
 bool home_motor_to_origin();
@@ -136,7 +137,8 @@ bool home_motor_to_origin()
      */
 
     const uint16_t  THRESHOLD       = 50;
-    const uint16_t  MAX_STEPS       = 3200; // 16 * 200
+    const uint16_t  MAX_STEPS       = 3200;     // 16 * 200
+    const double    HOMING_VELOCITY = 0.109;    // Slow velocity for precision
     uint16_t        steps_completed = 0;
     int16_t         start_step      = -1;
     int16_t         end_step        = -1;
@@ -145,7 +147,8 @@ bool home_motor_to_origin()
     // rotates backwards until it doesn't detect it anymore
     while (analogRead(HALL_PIN) < THRESHOLD) 
     { 
-        rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION)); 
+        rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION),
+                          DEFAULT_VELOCITY); 
     }
 
     while (steps_completed < MAX_STEPS)
@@ -161,7 +164,7 @@ bool home_motor_to_origin()
             end_step = steps_completed;
             break;
         }
-        rotate_motor_step(DEFAULT_DIRECTION);
+        rotate_motor_step(DEFAULT_DIRECTION, HOMING_VELOCITY);
         steps_completed++;
     }
 
@@ -174,7 +177,8 @@ bool home_motor_to_origin()
     for (uint16_t central_step = (end_step - start_step) / 2; central_step > 0;
          central_step--)
     {
-        rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION));
+        rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION),
+                          DEFAULT_VELOCITY);
     }
 
     Serial.println("Motor homed.");
@@ -203,7 +207,7 @@ void rotate_motor_to_next_sample()
         uint16_t abs_current_angle = abs(current_angle);
         for (size_t i = 0; i < MICROSTEPS_TO_DEG * abs_current_angle; i++)
         {
-            rotate_motor_step(direction);
+            rotate_motor_step(direction, DEFAULT_VELOCITY);
         }
         current_angle = 0;
     
@@ -217,19 +221,26 @@ void rotate_motor_to_next_sample()
     // Rotate the motor by 1° in the current direction
     for (size_t i = 0; i < MICROSTEPS_TO_DEG; i++)
     {
-        rotate_motor_step(direction);
+        rotate_motor_step(direction, DEFAULT_VELOCITY);
     }
     current_angle += (direction == DEFAULT_DIRECTION) ? 1 : -1;
 }
 
-void rotate_motor_step(const motor_direction direction)
+void rotate_motor_step(const motor_direction direction, const double velocity)
 {
+    // Calculate the wait time in microseconds for an input velocity in rad/s
+    const double wait_time = (PI * 1e6) / (velocity * 180 * MICROSTEPS_TO_DEG);
+
+    // Set the motor direction
     digitalWrite(M1_DIR_PIN, direction);
 
+    // Perform the motor step
     digitalWrite(M1_STEP_PIN, HIGH);
     delayMicroseconds(10);
     digitalWrite(M1_STEP_PIN, LOW);
-    delayMicroseconds(1000);
+
+    // Delay to control motor speed
+    delayMicroseconds(wait_time);
 }
 
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
