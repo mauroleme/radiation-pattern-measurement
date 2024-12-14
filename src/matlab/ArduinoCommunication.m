@@ -14,7 +14,7 @@ disp("Waiting for Arduino to initialize...");
 while true
     try
         response = readline(serialPort);                        % Read response from Arduino
-        if strcmp(response, "Motor homed.")                     % Check for successful initialization
+        if strcmp(response, "Ready.")                           % Check for successful initialization
             break;
         elseif strncmp(response, "Error", 5)                    % Check for error messages
             error("Error during setup.");

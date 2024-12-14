@@ -113,12 +113,15 @@ void loop()
     else
     {
         char error[64];
-        sprintf(error, "Unknown command: %d. Setting back to LISTEN mode",
+        sprintf(error, "Unknown command: %d. Setting back to LISTEN mode.",
                        mode);
         Serial.println(error);
             
         mode = LISTEN;
     }
+
+    // Signal MATLAB to begin requesting sample data
+    Serial.println("Ready.");
 }
 
 bool home_motor_to_origin()
