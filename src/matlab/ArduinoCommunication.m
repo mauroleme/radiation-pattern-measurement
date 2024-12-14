@@ -45,12 +45,12 @@ for degree = 0:359
     fprintf("Degree %3d: Value %.2f\n", degree, measurementValues(degree + 1));
 end
 
-disp("Collected measurements:");
-disp(measurementValues);
-
 % Reverse the indexing logic for position 181 (180 degrees) onward, as the
 % returned values are received in a circular order: starting from -1 degree
 % (359 degrees) and progressing to 179 degrees (181 degrees)
 measurementValues(181:360) = flip(measurementValues(181:360));
+
+disp("Collected measurements:");
+disp(measurementValues);
 
 clear port;                                                     % Close the serial port
