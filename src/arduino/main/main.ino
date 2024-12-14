@@ -80,6 +80,9 @@ void setup()
         Serial.println("Error: Failed to detect the magnet center.");
         while (true);
     }
+
+    // Signal MATLAB to begin requesting sample data
+    Serial.println("Ready.");
 }
 
 void loop()
@@ -119,9 +122,6 @@ void loop()
             
         mode = LISTEN;
     }
-
-    // Signal MATLAB to begin requesting sample data
-    Serial.println("Ready.");
 }
 
 bool home_motor_to_origin()
