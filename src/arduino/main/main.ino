@@ -45,8 +45,9 @@ const uint8_t           MICROSTEPS_TO_DEG   = 16;
 const int16_t           MAX_ANGLE           = 179;
 const int16_t           MIN_ANGLE           = -180;
 const size_t            SAMPLES             = 10;
-const motor_direction   DEFAULT_DIRECTION   = RIGHT;
 const double            DEFAULT_VELOCITY    = 1.09; // Angular velocity (rad/s)
+const motor_direction   DEFAULT_DIRECTION   = RIGHT;
+const uint32_t          MOTOR_SLEEP_TIMEOUT = 10000000;
 
 // Function prototypes
 bool home_motor_to_origin();
@@ -54,6 +55,7 @@ void capture_sensor_data(uint16_t *sensor_values, size_t samples);
 void rotate_motor_to_next_sample();
 void rotate_motor_step(const motor_direction direction);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
+void sleep_motor(uint32_t last_active); 
 
 void setup()
 {
@@ -94,7 +96,8 @@ void loop()
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
      */
-    static int mode = LISTEN;
+    static int      mode        = LISTEN;
+    static uint32_t last_active = micros();
     
     if (mode == LISTEN)
     {
@@ -106,12 +109,18 @@ void loop()
     else if (mode == PROCESS)
     {
         uint16_t sensor_values[SAMPLES]  = {0};
-            
+        
+        // Enable motor
+        // TODO: Optimize performance by replacing digitalWrite with direct
+        //       port manipulation for faster pin toggling
+        digitalWrite(M1_EN_PIN, LOW);
+
         capture_sensor_data(sensor_values, SAMPLES);
         rotate_motor_to_next_sample();
         transmit_sensor_data(sensor_values, SAMPLES);
             
-        mode = LISTEN;
+        last_active = micros();
+        mode        = LISTEN;
     }
     else
     {
@@ -122,6 +131,8 @@ void loop()
             
         mode = LISTEN;
     }
+
+    sleep_motor(last_active);
 }
 
 bool home_motor_to_origin()
@@ -234,6 +245,9 @@ void rotate_motor_step(const motor_direction direction, const double velocity)
     // Calculate the wait time in microseconds for an input velocity in rad/s
     const double wait_time = (PI * 1e6) / (velocity * 180 * MICROSTEPS_TO_DEG);
 
+    // TODO: Optimize performance by replacing digitalWrite with direct
+    //       port manipulation for faster pin toggling
+
     // Set the motor direction
     digitalWrite(M1_DIR_PIN, direction);
 
@@ -267,4 +281,12 @@ void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
     }
     
     Serial.println(buffer);
+}
+
+void sleep_motor(const uint32_t last_active)
+{
+    if (micros() - last_active >= MOTOR_SLEEP_TIMEOUT)
+    {
+        digitalWrite(M1_EN_PIN, HIGH);
+    }
 }
