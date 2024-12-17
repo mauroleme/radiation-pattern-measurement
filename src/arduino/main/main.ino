@@ -211,7 +211,6 @@ bool home_motor_to_origin()
     {
         rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION),
                           DEFAULT_VELOCITY);
-        digitalWrite(M1_EN_PIN, HIGH);
     }
 
     Serial.println("Motor homed.");
