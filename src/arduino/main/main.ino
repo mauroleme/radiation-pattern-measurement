@@ -33,9 +33,26 @@
 enum motor_direction  { RIGHT = LOW, LEFT = HIGH };
 enum system_state     { LISTEN = 0, PROCESS = 1 };
 
+// Port definitions
+#define                 M1_PORT             PORTH
+#define                 M1_STEP_BIT         PH3
+#define                 M1_DIR_BIT          PH4
+#define                 M1_EN_BIT           PH5
+
+// Macros for direct PIN manipulation
+#define                 ENABLE_MOTOR()      M1_PORT &= ~_BV(M1_EN_BIT)
+#define                 DISABLE_MOTOR()     M1_PORT |= _BV(M1_EN_BIT)
+#define                 STEP()              M1_PORT |= _BV(M1_STEP_BIT);    \
+                                            delayMicroseconds(10);          \
+                                            M1_PORT &= ~_BV(M1_STEP_BIT);   \
+#define                 SET_DIR(direction)  if (direction == LOW)           \
+                                                M1_PORT &= ~_BV(M1_DIR_BIT);\
+                                            else                            \
+                                                M1_PORT |= _BV(M1_DIR_BIT); \
+
 // PIN definitions
-const uint8_t           M1_DIR_PIN          = 7;    // Motor direction
 const uint8_t           M1_STEP_PIN         = 6;    // Motor step
+const uint8_t           M1_DIR_PIN          = 7;    // Motor direction
 const uint8_t           M1_EN_PIN           = 8;    // Motor enable
 const uint8_t           HALL_PIN            = A13;  // Hall sensor
 const uint8_t           RF_PIN              = A15;  // Radiofrequency module
@@ -67,8 +84,8 @@ void setup()
     pinMode(RF_PIN, INPUT);
     
     // Activate the motor and set initial direction
-    digitalWrite(M1_EN_PIN, LOW);
-    digitalWrite(M1_DIR_PIN, LOW);
+    ENABLE_MOTOR();
+    SET_DIR(DEFAULT_DIRECTION);
 
     // Setting up the serial port
     Serial.setTimeout(1000);
@@ -79,6 +96,7 @@ void setup()
     // Set motor to the origin
     if (home_motor_to_origin() == false)
     {
+        digitalWrite(M1_EN_PIN, HIGH);
         Serial.println("Error: Failed to detect the magnet center.");
         while (true);
     }
@@ -110,10 +128,7 @@ void loop()
     {
         uint16_t sensor_values[SAMPLES]  = {0};
         
-        // Enable motor
-        // TODO: Optimize performance by replacing digitalWrite with direct
-        //       port manipulation for faster pin toggling
-        digitalWrite(M1_EN_PIN, LOW);
+        ENABLE_MOTOR();
 
         capture_sensor_data(sensor_values, SAMPLES);
         rotate_motor_to_next_sample();
@@ -193,6 +208,7 @@ bool home_motor_to_origin()
     {
         rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION),
                           DEFAULT_VELOCITY);
+        digitalWrite(M1_EN_PIN, HIGH);
     }
 
     Serial.println("Motor homed.");
@@ -245,16 +261,8 @@ void rotate_motor_step(const motor_direction direction, const double velocity)
     // Calculate the wait time in microseconds for an input velocity in rad/s
     const double wait_time = (PI * 1e6) / (velocity * 180 * MICROSTEPS_TO_DEG);
 
-    // TODO: Optimize performance by replacing digitalWrite with direct
-    //       port manipulation for faster pin toggling
-
-    // Set the motor direction
-    digitalWrite(M1_DIR_PIN, direction);
-
-    // Perform the motor step
-    digitalWrite(M1_STEP_PIN, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(M1_STEP_PIN, LOW);
+    SET_DIR(direction);
+    STEP();
 
     // Delay to control motor speed
     delayMicroseconds(wait_time);
@@ -287,6 +295,6 @@ void sleep_motor(const uint32_t last_active)
 {
     if (micros() - last_active >= MOTOR_SLEEP_TIMEOUT)
     {
-        digitalWrite(M1_EN_PIN, HIGH);
+        DISABLE_MOTOR();
     }
 }
