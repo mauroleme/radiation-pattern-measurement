@@ -42,13 +42,16 @@ enum system_state     { LISTEN = 0, PROCESS = 1 };
 // Macros for direct PIN manipulation
 #define                 ENABLE_MOTOR()      M1_PORT &= ~_BV(M1_EN_BIT)
 #define                 DISABLE_MOTOR()     M1_PORT |= _BV(M1_EN_BIT)
-#define                 STEP()              M1_PORT |= _BV(M1_STEP_BIT);    \
-                                            delayMicroseconds(10);          \
-                                            M1_PORT &= ~_BV(M1_STEP_BIT);   \
-#define                 SET_DIR(direction)  if (direction == LOW)           \
-                                                M1_PORT &= ~_BV(M1_DIR_BIT);\
-                                            else                            \
-                                                M1_PORT |= _BV(M1_DIR_BIT); \
+#define                 STEP()              { M1_PORT |= _BV(M1_STEP_BIT);      \
+                                              delayMicroseconds(10);            \
+                                              M1_PORT &= ~_BV(M1_STEP_BIT); }
+#define                 SET_DIR(direction)  do                                  \
+                                            {                                   \
+                                                if (direction == HIGH)          \
+                                                    M1_PORT |= _BV(M1_DIR_BIT); \
+                                                else                            \
+                                                    M1_PORT &= ~_BV(M1_DIR_BIT);\
+                                            } while(0);
 
 // PIN definitions
 const uint8_t           M1_STEP_PIN         = 6;    // Motor step
