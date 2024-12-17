@@ -42,9 +42,9 @@ enum system_state     { LISTEN = 0, PROCESS = 1 };
 // Macros for direct PIN manipulation
 #define                 ENABLE_MOTOR()      M1_PORT &= ~_BV(M1_EN_BIT)
 #define                 DISABLE_MOTOR()     M1_PORT |= _BV(M1_EN_BIT)
-#define                 STEP()              { M1_PORT |= _BV(M1_STEP_BIT);      \
-                                              delayMicroseconds(10);            \
-                                              M1_PORT &= ~_BV(M1_STEP_BIT); }
+#define                 STEP()              { M1_PORT &= ~_BV(M1_STEP_BIT);     \
+                                              delayMicroseconds(100);           \
+                                              M1_PORT |= _BV(M1_STEP_BIT); }
 #define                 SET_DIR(direction)  do                                  \
                                             {                                   \
                                                 if (direction == HIGH)          \
