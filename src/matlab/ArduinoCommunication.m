@@ -53,4 +53,4 @@ measurementValues(181:360) = flip(measurementValues(181:360));
 disp("Collected measurements:");
 disp(measurementValues);
 
-clear port;                                                     % Close the serial port
+clear serialPort;                                               % Close the serial port
