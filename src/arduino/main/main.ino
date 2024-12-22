@@ -175,7 +175,7 @@ bool home_motor_to_origin()
 
     // Case where the sensor is already detecting the magnet, so the motor
     // rotates backwards until it doesn't detect it anymore
-    while (analogRead(HALL_PIN) < THRESHOLD) 
+    while (analogRead(HALL_PIN) < HALL_THRESHOLD) 
     { 
         rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION)); 
     }
@@ -238,7 +238,7 @@ void rotate_motor_to_next_sample()
         uint16_t abs_current_angle = abs(current_angle);
         for (size_t i = 0; i < MICROSTEPS_TO_DEG * abs_current_angle; i++)
         {
-            rotate_motor_step(direction, DEFAULT_VELOCITY);
+            rotate_motor_step(direction);
         }
         current_angle = 0;
     
