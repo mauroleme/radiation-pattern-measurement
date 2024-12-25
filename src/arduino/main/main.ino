@@ -43,7 +43,7 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 #define                 ENABLE_MOTOR()      M1_PORT &= ~_BV(M1_EN_BIT)
 #define                 DISABLE_MOTOR()     M1_PORT |= _BV(M1_EN_BIT)
 #define                 STEP()              { M1_PORT &= ~_BV(M1_STEP_BIT);     \
-                                              delayMicroseconds(100);           \
+                                              delayMicroseconds(STEP_INTERVAL); \
                                               M1_PORT |= _BV(M1_STEP_BIT); }
 #define                 SET_DIR(direction)  do                                  \
                                             {                                   \
@@ -61,6 +61,7 @@ const uint8_t           HALL_PIN            = A13;  // Hall sensor
 const uint8_t           RF_PIN              = A15;  // Radiofrequency module
 
 // Constants definitions
+const uint32_t          STEP_INTERVAL       = 100;
 const int16_t           MAX_ANGLE           = 179;
 const int16_t           MIN_ANGLE           = -180;
 const uint8_t           MICROSTEPS_TO_DEG   = 16;
@@ -259,11 +260,10 @@ void rotate_motor_to_next_sample()
 
 void inline rotate_motor_step(const motor_direction direction)
 {
-    static const uint32_t   MIN_STEP_INTERVAL   = 100;
-    static uint32_t         last_step_time      = 0;
+    static uint32_t last_step_time = 0;
 
     // Make sure the stepper motor has stabilized
-    while ((uint32_t)(micros() - last_step_time) < MIN_STEP_INTERVAL);
+    while ((uint32_t)(micros() - last_step_time) < STEP_INTERVAL);
 
     SET_DIR(direction);
     STEP();
