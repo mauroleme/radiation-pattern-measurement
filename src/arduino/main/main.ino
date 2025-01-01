@@ -79,8 +79,8 @@ void inline sleep_motor(const uint32_t last_active);
 void setup()
 {
     // Setting up the pins
-    pinMode(M1_DIR_PIN, OUTPUT);
     pinMode(M1_STEP_PIN, OUTPUT);
+    pinMode(M1_DIR_PIN, OUTPUT);
     pinMode(M1_EN_PIN, OUTPUT);
     pinMode(HALL_PIN, INPUT);
     pinMode(RF_PIN, INPUT);
