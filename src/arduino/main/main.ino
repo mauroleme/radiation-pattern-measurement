@@ -51,7 +51,7 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
                                                     M1_PORT |= _BV(M1_DIR_BIT); \
                                                 else                            \
                                                     M1_PORT &= ~_BV(M1_DIR_BIT);\
-                                            } while(0);
+                                            } while (0);
 
 // PIN definitions
 const uint8_t           M1_STEP_PIN         = 6;    // Motor step
