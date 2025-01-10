@@ -171,7 +171,7 @@ bool home_motor_to_origin()
     const uint16_t  HALL_THRESHOLD  = 50;       
     const uint16_t  MAX_STEPS       = 3200;     // 16 * 200
     uint16_t        steps_completed = 0;
-    uint16_t        start_step      = MAX_STEPS;
+    uint16_t        start_step      = 0;
     uint16_t        end_step;
 
     // Case where the sensor is already detecting the magnet, so the motor
@@ -183,22 +183,21 @@ bool home_motor_to_origin()
 
     while (steps_completed < MAX_STEPS)
     {
+        rotate_motor_step(DEFAULT_DIRECTION);
+        delayMicroseconds(HOMING_DELAY);
+        steps_completed++;
+        
         uint16_t hall_value = analogRead(HALL_PIN);
 
-        if (hall_value < HALL_THRESHOLD && start_step == MAX_STEPS)
+        if (hall_value < HALL_THRESHOLD && start_step == 0)
         {
             start_step = steps_completed;
         }
-        else if (hall_value >= HALL_THRESHOLD && start_step != MAX_STEPS)
+        else if (hall_value >= HALL_THRESHOLD && start_step != 0)
         {
             end_step = steps_completed;
             break;
         }
-        
-        rotate_motor_step(DEFAULT_DIRECTION);
-        delayMicroseconds(HOMING_DELAY);
-
-        steps_completed++;
     }
 
     // If no center point was reached, throw an error
