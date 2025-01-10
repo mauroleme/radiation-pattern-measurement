@@ -136,8 +136,8 @@ void loop()
         rotate_motor_to_next_sample();
         transmit_sensor_data(sensor_values, SAMPLES);
             
-        last_active = micros();
         mode        = LISTEN;
+        last_active = micros();
     }
     else
     {
@@ -171,8 +171,8 @@ bool home_motor_to_origin()
     const uint16_t  HALL_THRESHOLD  = 50;       
     const uint16_t  MAX_STEPS       = 3200;     // 16 * 200
     uint16_t        steps_completed = 0;
-    int16_t         start_step      = -1;
-    int16_t         end_step        = -1;
+    uint16_t        start_step      = MAX_STEPS;
+    uint16_t        end_step;
 
     // Case where the sensor is already detecting the magnet, so the motor
     // rotates backwards until it doesn't detect it anymore
@@ -185,15 +185,16 @@ bool home_motor_to_origin()
     {
         uint16_t hall_value = analogRead(HALL_PIN);
 
-        if (hall_value < HALL_THRESHOLD && start_step == -1)
+        if (hall_value < HALL_THRESHOLD && start_step == MAX_STEPS)
         {
             start_step = steps_completed;
         }
-        else if (hall_value >= HALL_THRESHOLD && start_step != -1)
+        else if (hall_value >= HALL_THRESHOLD && start_step != MAX_STEPS)
         {
             end_step = steps_completed;
             break;
         }
+        
         rotate_motor_step(DEFAULT_DIRECTION);
         delayMicroseconds(HOMING_DELAY);
 
@@ -234,9 +235,10 @@ void rotate_motor_to_next_sample()
     // Reset motor to home if angle limits are reached
     if (current_angle == MAX_ANGLE || current_angle == MIN_ANGLE)
     {
-        direction = (motor_direction)(!direction);
         // Rotate back to home
-        uint16_t abs_current_angle = abs(current_angle);
+        direction                   = (motor_direction)(!direction);
+        uint16_t abs_current_angle  = abs(current_angle);
+        
         for (size_t i = 0; i < MICROSTEPS_TO_DEG * abs_current_angle; i++)
         {
             rotate_motor_step(direction);
@@ -296,7 +298,7 @@ void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
 
 void inline sleep_motor(const uint32_t last_active)
 {
-    static const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
+    const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
     
     if ((uint32_t)(micros() - last_active) >= MOTOR_SLEEP_TIMEOUT)
     {
