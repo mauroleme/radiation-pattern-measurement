@@ -181,7 +181,7 @@ bool home_motor_to_origin()
         rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION)); 
     }
 
-    while (steps_completed < MAX_STEPS)
+    do
     {
         rotate_motor_step(DEFAULT_DIRECTION);
         delayMicroseconds(HOMING_DELAY);
@@ -198,7 +198,7 @@ bool home_motor_to_origin()
             end_step = steps_completed;
             break;
         }
-    }
+    } while (steps_completed < MAX_STEPS);
 
     // If no center point was reached, throw an error
     if (steps_completed == MAX_STEPS)
