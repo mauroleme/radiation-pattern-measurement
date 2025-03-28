@@ -78,8 +78,8 @@ void loop()
      *                  resets to LISTEN.
      */
     static int mode      = LISTEN;
-    int        wanted_m1;
-    int        wanted_m2;
+    int        wanted_ang_m1;
+    int        wanted_ang_m2;
     
     if (mode == LISTEN)
     {
@@ -87,8 +87,8 @@ void loop()
         {
             String input     = Serial.readStringUntil('\n');
             int    comma_ind = input.indexOf(','); 
-            wanted_m1        = input.substring(0, comma_ind).toInt();
-            wanted_m2        = input.substring(comma_ind + 1).toInt();
+            wanted_ang_m1    = input.substring(0, comma_ind).toInt();
+            wanted_ang_m2    = input.substring(comma_ind + 1).toInt();
             
             mode             = PROCESS;
         }
@@ -102,7 +102,6 @@ void loop()
         transmit_sensor_data(sensor_values, SAMPLES);
             
         mode        = LISTEN;
-        last_active = micros();
     }
     else
     {
@@ -142,11 +141,11 @@ bool home_motor_to_origin(const joint_id joint)
     
     if (joint == JOINT1)
     {
-        HALL_PIN = HALL_M1_PIN;
+        HALL_PIN = HALL_M1_BIT;
     }
     else
     {
-        HALL_PIN = HALL_M2_PIN;
+        HALL_PIN = HALL_M2_BIT;
     }
 
     // Case where the sensor is already detecting the magnet, so the motor
@@ -225,9 +224,9 @@ void rotate_motor_to_next_sample(const uint32_t wanted_ang_m1, const uint32_t wa
 
 void inline rotate_motor_step(const joint_id joint, const motor_direction direction)
 {
-    if (joint_id == JOINT1)
+    if (joint == JOINT1)
     {
-        ENABLE_M1
+        ENABLE_M1();
         SET_DIR_M1(direction);
         STEP_M1();
 
@@ -235,11 +234,11 @@ void inline rotate_motor_step(const joint_id joint, const motor_direction direct
     }
     else
     {
-        ENABLE_M2
+        ENABLE_M2();
         SET_DIR_M2(direction);
         STEP_M2();
 
-        LAST_ACTIVE_M2 = micros()
+        LAST_ACTIVE_M2 = micros();
     }
 }
 

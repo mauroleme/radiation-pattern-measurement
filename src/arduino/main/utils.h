@@ -62,9 +62,9 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
                                                 else                           \
                                                     PORTD &= ~_BV(M1_DIR_BIT); \
                                             } while (0)
-#define                 CONFIG_M1()         DDRH |= _BV(M1_STEP_BIT) |         \
-                                                    _BV(M1_DIR_BIT)  |         \
-                                                    _BV(M1_EN_BIT)
+#define                 CONFIG_M1()         DDRD |= _BV(M1_STEP_BIT) |         \
+                                                    _BV(M1_DIR_BIT);           \
+                                            DDRB |= _BV(M1_EN_BIT)
 
 #define                 ENABLE_M2()         PORTB &= ~_BV(M2_EN_BIT)
 #define                 DISABLE_M2()        PORTB |= _BV(M2_EN_BIT)
@@ -79,9 +79,9 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
                                                 else                           \
                                                     PORTD &= ~_BV(M2_DIR_BIT); \
                                             } while (0)
-#define                 CONFIG_M2()         DDRH |= _BV(M2_STEP_BIT) |         \
-                                                    _BV(M2_DIR_BIT)  |         \
-                                                    _BV(M2_EN_BIT)
+#define                 CONFIG_M2()         DDRD |= _BV(M2_STEP_BIT) |         \
+                                                    _BV(M2_DIR_BIT);           \
+                                            DDRB |= _BV(M2_EN_BIT)
 
 #define                 CONFIG_M()          CONFIG_M1(); CONFIG_M2();
                                           
@@ -89,12 +89,12 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 #define                 ENABLE_M()          ENABLE_M1(); ENABLE_M2();
 #define                 DISABLE_M()         DISABLE_M1(); DISABLE_M2()
 
-#define                 CONFIG_HALL_M1()    DDRH |= _BV(HALL_M1_BIT)
-#define                 CONFIG_HALL_M2()    DDRH |= _BV(HALL_M2_BIT)
+#define                 CONFIG_HALL_M1()    DDRC |= _BV(HALL_M1_BIT)
+#define                 CONFIG_HALL_M2()    DDRC |= _BV(HALL_M2_BIT)
 
-#define                 CONFIG_HALL()       CONFIG_HALL_M1(); CONFIG_HALL_M2
+#define                 CONFIG_HALL()       CONFIG_HALL_M1(); CONFIG_HALL_M2()
 
-#define                 CONFIG_RF()         DDRH |= _BV(RF_BIT)
+#define                 CONFIG_RF()         DDRC |= _BV(RF_BIT)
 
 // Constants definitions
 const uint32_t          DELTAT              = 100;
