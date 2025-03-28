@@ -6,88 +6,41 @@
  *
  * License  : MIT License
  *
- *            Copyright (c) 2024 mauroleme
+ * Copyright (c) 2024 mauroleme
  *
- *            Permission is hereby granted, free of charge, to any person obtaining a copy
- *            of this software and associated documentation files (the "Software"), to deal
- *            in the Software without restriction, including without limitation the rights
- *            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *            copies of the Software, and to permit persons to whom the Software is
- *            furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- *            The above copyright notice and this permission notice shall be included in all
- *            copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- *            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *            SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
-#include <Arduino.h>
+#include "utils.h"
 
-
-enum motor_direction    { RIGHT     = LOW   , LEFT      = HIGH };
-enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
-
-// Port definitions
-#define                 M1_PORT             PORTH
-#define                 M1_STEP_BIT         PH3
-#define                 M1_DIR_BIT          PH4
-#define                 M1_EN_BIT           PH5
-
-// Macros for direct PIN manipulation
-#define                 ENABLE_MOTOR()      M1_PORT &= ~_BV(M1_EN_BIT)
-#define                 DISABLE_MOTOR()     M1_PORT |= _BV(M1_EN_BIT)
-#define                 STEP()              { M1_PORT &= ~_BV(M1_STEP_BIT);     \
-                                              delayMicroseconds(STEP_INTERVAL); \
-                                              M1_PORT |= _BV(M1_STEP_BIT); }
-#define                 SET_DIR(direction)  do                                  \
-                                            {                                   \
-                                                if (direction == HIGH)          \
-                                                    M1_PORT |= _BV(M1_DIR_BIT); \
-                                                else                            \
-                                                    M1_PORT &= ~_BV(M1_DIR_BIT);\
-                                            } while (0);
-
-// PIN definitions
-const uint8_t           M1_STEP_PIN         = 6;    // Motor step
-const uint8_t           M1_DIR_PIN          = 7;    // Motor direction
-const uint8_t           M1_EN_PIN           = 8;    // Motor enable
-const uint8_t           HALL_PIN            = A13;  // Hall sensor
-const uint8_t           RF_PIN              = A15;  // Radiofrequency module
-
-// Constants definitions
-const uint32_t          STEP_INTERVAL       = 100;
-const int16_t           MAX_ANGLE           = 179;
-const int16_t           MIN_ANGLE           = -180;
-const uint8_t           MICROSTEPS_TO_DEG   = 16;
-const size_t            SAMPLES             = 10;
-const motor_direction   DEFAULT_DIRECTION   = RIGHT;
-
-// Function prototypes
-bool home_motor_to_origin();
-void capture_sensor_data(uint16_t *sensor_values, size_t samples);
-void rotate_motor_to_next_sample();
-void inline rotate_motor_step(const motor_direction direction);
-void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
-void inline sleep_motor(const uint32_t last_active); 
 
 void setup()
 {
     // Setting up the pins
-    pinMode(M1_STEP_PIN, OUTPUT);
-    pinMode(M1_DIR_PIN, OUTPUT);
-    pinMode(M1_EN_PIN, OUTPUT);
-    pinMode(HALL_PIN, INPUT);
-    pinMode(RF_PIN, INPUT);
-    
-    // Activate the motor and set initial direction
-    ENABLE_MOTOR();
-    SET_DIR(DEFAULT_DIRECTION);
+    CONFIG_M();
+    CONFIG_HALL();
+    CONFIG_RF();
+
+    // Activate the motors and set initial direction
+    SET_DIR_M1(DEFAULT_DIRECTION);
+    SET_DIR_M2(DEFAULT_DIRECTION);
+    ENABLE_M();
 
     // Setting up the serial port
     Serial.setTimeout(1000);
@@ -95,10 +48,18 @@ void setup()
     while (!Serial);
     Serial.println("Serial port initialized successfully!");
 
-    // Set motor to the origin
-    if (home_motor_to_origin() == false)
+    // Set M1 to the origin
+    if (home_motor_to_origin(JOINT1) == false)
     {
-        digitalWrite(M1_EN_PIN, HIGH);
+        DISABLE_M();
+        Serial.println("Error: Failed to detect the magnet center.");
+        while (true);
+    }
+
+    // Set M2 to the origin
+    if (home_motor_to_origin(JOINT2) == false)
+    {
+        DISABLE_M();
         Serial.println("Error: Failed to detect the magnet center.");
         while (true);
     }
@@ -116,24 +77,28 @@ void loop()
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
      */
-    static int      mode        = LISTEN;
-    static uint32_t last_active = micros();
+    static int mode      = LISTEN;
+    int        wanted_m1;
+    int        wanted_m2;
     
     if (mode == LISTEN)
     {
         if (Serial.available() > 0)
         {
-            mode = Serial.parseInt();
+            String input     = Serial.readStringUntil('\n');
+            int    comma_ind = input.indexOf(','); 
+            wanted_m1        = input.substring(0, comma_ind).toInt();
+            wanted_m2        = input.substring(comma_ind + 1).toInt();
+            
+            mode             = PROCESS;
         }
     }
     else if (mode == PROCESS)
     {
         uint16_t sensor_values[SAMPLES]  = { 0 };
         
-        ENABLE_MOTOR();
-
+        rotate_motor_to_next_sample(wanted_ang_m1, wanted_ang_m2);
         capture_sensor_data(sensor_values, SAMPLES);
-        rotate_motor_to_next_sample();
         transmit_sensor_data(sensor_values, SAMPLES);
             
         mode        = LISTEN;
@@ -149,10 +114,10 @@ void loop()
         mode = LISTEN;
     }
 
-    sleep_motor(last_active);
+    sleep_motor();
 }
 
-bool home_motor_to_origin()
+bool home_motor_to_origin(const joint_id joint)
 {
     Serial.println("Starting search for motor origin...");
     
@@ -173,17 +138,27 @@ bool home_motor_to_origin()
     uint16_t        steps_completed = 0;
     uint16_t        start_step      = 0;
     uint16_t        end_step;
+    uint16_t        HALL_PIN;
+    
+    if (joint == JOINT1)
+    {
+        HALL_PIN = HALL_M1_PIN;
+    }
+    else
+    {
+        HALL_PIN = HALL_M2_PIN;
+    }
 
     // Case where the sensor is already detecting the magnet, so the motor
     // rotates backwards until it doesn't detect it anymore
     while (analogRead(HALL_PIN) < HALL_THRESHOLD) 
     { 
-        rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION)); 
+        rotate_motor_step(joint, (motor_direction)(!DEFAULT_DIRECTION)); 
     }
 
     do
     {
-        rotate_motor_step(DEFAULT_DIRECTION);
+        rotate_motor_step(joint, DEFAULT_DIRECTION);
         delayMicroseconds(HOMING_DELAY);
         steps_completed++;
         
@@ -209,7 +184,7 @@ bool home_motor_to_origin()
     for (uint16_t central_step = (end_step - start_step) / 2; central_step > 0;
          central_step--)
     {
-        rotate_motor_step((motor_direction)(!DEFAULT_DIRECTION));
+        rotate_motor_step(joint, (motor_direction)(!DEFAULT_DIRECTION));
         delayMicroseconds(HOMING_DELAY);
     }
 
@@ -221,55 +196,51 @@ void capture_sensor_data(uint16_t *sensor_values, size_t samples)
 {
     for (size_t i = 0; i < samples; i++) 
     {
-        sensor_values[i] = analogRead(RF_PIN);
+        sensor_values[i] = analogRead(RF_BIT);
         delayMicroseconds(10000);
     }
 }
 
-void rotate_motor_to_next_sample()
+void rotate_motor_to_next_sample(const uint32_t wanted_ang_m1, const uint32_t wanted_ang_m2)
 {
-    static int16_t          current_angle = 0;
-    static motor_direction  direction     = DEFAULT_DIRECTION;
-   
-    // Reset motor to home if angle limits are reached
-    if (current_angle == MAX_ANGLE || current_angle == MIN_ANGLE)
+    static uint32_t        ANG_M1   = 0;
+    static uint32_t        ANG_M2   = 0;
+    const  size_t          DELTA_M1 = abs(wanted_ang_m1 - ANG_M1) *
+                                      MICROSTEPS_TO_DEG;
+    const  size_t          DELTA_M2 = abs(wanted_ang_m2 - ANG_M2) *
+                                      MICROSTEPS_TO_DEG;
+    const  motor_direction DIR_M1   = wanted_ang_m1 < ANG_M1 ? !DEFAULT_DIRECTION :
+                                                            DEFAULT_DIRECTION;
+    const  motor_direction DIR_M2   = wanted_ang_m2 < ANG_M2 ? !DEFAULT_DIRECTION :
+                                                            DEFAULT_DIRECTION;
+    for (size_t i = 0; i < DELTA_M1; i++)
     {
-        // Rotate back to home
-        direction                   = (motor_direction)(!direction);
-        uint16_t abs_current_angle  = abs(current_angle);
-        
-        for (size_t i = 0; i < MICROSTEPS_TO_DEG * abs_current_angle; i++)
-        {
-            rotate_motor_step(direction);
-        }
-        current_angle = 0;
-    
-        // Skip the initial rotation after performing 360°
-        if (direction == DEFAULT_DIRECTION)
-        {
-            return;
-        }
+        rotate_motor_step(JOINT1, DIR_M1); 
     }
-
-    // Rotate the motor by 1° in the current direction
-    for (size_t i = 0; i < MICROSTEPS_TO_DEG; i++)
+    for (size_t i = 0; i < DELTA_M2; i++)
     {
-        rotate_motor_step(direction);
+        rotate_motor_step(JOINT2, DIR_M2);
     }
-    current_angle += (direction == DEFAULT_DIRECTION) ? 1 : -1;
 }
 
-void inline rotate_motor_step(const motor_direction direction)
+void inline rotate_motor_step(const joint_id joint, const motor_direction direction)
 {
-    static uint32_t last_step_time = 0;
+    if (joint_id == JOINT1)
+    {
+        ENABLE_M1
+        SET_DIR_M1(direction);
+        STEP_M1();
 
-    // Make sure the stepper motor has stabilized
-    while ((uint32_t)(micros() - last_step_time) < STEP_INTERVAL);
+        LAST_ACTIVE_M1 = micros();
+    }
+    else
+    {
+        ENABLE_M2
+        SET_DIR_M2(direction);
+        STEP_M2();
 
-    SET_DIR(direction);
-    STEP();
-
-    last_step_time = micros();
+        LAST_ACTIVE_M2 = micros()
+    }
 }
 
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
@@ -295,12 +266,14 @@ void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
     Serial.println(buffer);
 }
 
-void inline sleep_motor(const uint32_t last_active)
+void inline sleep_motor()
 {
-    const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
-    
-    if ((uint32_t)(micros() - last_active) >= MOTOR_SLEEP_TIMEOUT)
+    if ((uint32_t)(micros() - LAST_ACTIVE_M1) >= MOTOR_SLEEP_TIMEOUT)
     {
-        DISABLE_MOTOR();
+        DISABLE_M1();
+    }
+    if ((uint32_t)(micros() - LAST_ACTIVE_M2) >= MOTOR_SLEEP_TIMEOUT)
+    {
+        DISABLE_M2();
     }
 }
