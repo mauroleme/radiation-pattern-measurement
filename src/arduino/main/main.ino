@@ -55,7 +55,8 @@ void setup()
         Serial.println("Error: Failed to detect the magnet center.");
         while (true);
     }
-
+    
+    /*
     // Set M2 to the origin
     if (home_motor_to_origin(JOINT2) == false)
     {
@@ -63,6 +64,7 @@ void setup()
         Serial.println("Error: Failed to detect the magnet center.");
         while (true);
     }
+    */
 
     // Signal MATLAB to begin requesting sample data
     Serial.println("Ready.");
@@ -77,9 +79,9 @@ void loop()
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
      */
-    static int mode      = LISTEN;
-    int        wanted_ang_m1;
-    int        wanted_ang_m2;
+    static int     mode = LISTEN;
+    static int32_t wanted_ang_m1;
+    static int32_t wanted_ang_m2;
     
     if (mode == LISTEN)
     {
@@ -89,7 +91,7 @@ void loop()
             int    comma_ind = input.indexOf(','); 
             wanted_ang_m1    = input.substring(0, comma_ind).toInt();
             wanted_ang_m2    = input.substring(comma_ind + 1).toInt();
-            
+
             mode             = PROCESS;
         }
     }
@@ -132,27 +134,16 @@ bool home_motor_to_origin(const joint_id joint)
      */
 
     const uint16_t  HOMING_DELAY    = 10000;    // Lowers the velocity
-    const uint16_t  HALL_THRESHOLD  = 50;       
-    const uint16_t  MAX_STEPS       = 3200;     // 16 * 200
+    const uint16_t  MAX_STEPS       = 5760;     // 16 * 360
     uint16_t        steps_completed = 0;
     uint16_t        start_step      = 0;
     uint16_t        end_step;
-    uint16_t        HALL_PIN;
-    
-    if (joint == JOINT1)
-    {
-        HALL_PIN = HALL_M1_BIT;
-    }
-    else
-    {
-        HALL_PIN = HALL_M2_BIT;
-    }
 
     // Case where the sensor is already detecting the magnet, so the motor
     // rotates backwards until it doesn't detect it anymore
-    while (analogRead(HALL_PIN) < HALL_THRESHOLD) 
+    while (READ_HALL(joint)) 
     { 
-        rotate_motor_step(joint, (motor_direction)(!DEFAULT_DIRECTION)); 
+        rotate_motor_step(joint, (motor_direction)(!DEFAULT_DIRECTION));
     }
 
     do
@@ -161,13 +152,12 @@ bool home_motor_to_origin(const joint_id joint)
         delayMicroseconds(HOMING_DELAY);
         steps_completed++;
         
-        uint16_t hall_value = analogRead(HALL_PIN);
-
-        if (hall_value < HALL_THRESHOLD && start_step == 0)
+        bool hall_value = READ_HALL(joint);
+        if (hall_value && start_step == 0)
         {
             start_step = steps_completed;
         }
-        else if (hall_value >= HALL_THRESHOLD && start_step != 0)
+        else if (!hall_value && start_step != 0)
         {
             end_step = steps_completed;
             break;
@@ -200,26 +190,28 @@ void capture_sensor_data(uint16_t *sensor_values, size_t samples)
     }
 }
 
-void rotate_motor_to_next_sample(const uint32_t wanted_ang_m1, const uint32_t wanted_ang_m2)
+void rotate_motor_to_next_sample(const int32_t wanted_ang_m1, const int32_t wanted_ang_m2)
 {
-    static uint32_t        ANG_M1   = 0;
-    static uint32_t        ANG_M2   = 0;
+    static int32_t         ANG_M1   = 0;
+    static int32_t         ANG_M2   = 0;
     const  size_t          DELTA_M1 = abs(wanted_ang_m1 - ANG_M1) *
                                       MICROSTEPS_TO_DEG;
     const  size_t          DELTA_M2 = abs(wanted_ang_m2 - ANG_M2) *
                                       MICROSTEPS_TO_DEG;
     const  motor_direction DIR_M1   = wanted_ang_m1 < ANG_M1 ? !DEFAULT_DIRECTION :
-                                                            DEFAULT_DIRECTION;
+                                                                DEFAULT_DIRECTION;
     const  motor_direction DIR_M2   = wanted_ang_m2 < ANG_M2 ? !DEFAULT_DIRECTION :
-                                                            DEFAULT_DIRECTION;
+                                                                DEFAULT_DIRECTION;
     for (size_t i = 0; i < DELTA_M1; i++)
     {
-        rotate_motor_step(JOINT1, DIR_M1); 
+        rotate_motor_step(JOINT1, DIR_M1);
     }
     for (size_t i = 0; i < DELTA_M2; i++)
     {
         rotate_motor_step(JOINT2, DIR_M2);
     }
+    ANG_M1 = wanted_ang_m1;
+    ANG_M2 = wanted_ang_m2;
 }
 
 void inline rotate_motor_step(const joint_id joint, const motor_direction direction)

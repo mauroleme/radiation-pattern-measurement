@@ -51,10 +51,13 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 // Macros for direct PIN manipulation
 #define                 ENABLE_M1()         PORTB &= ~_BV(M1_EN_BIT)
 #define                 DISABLE_M1()        PORTB |= _BV(M1_EN_BIT)
-#define                 STEP_M1()           { PORTD &= ~_BV(M1_STEP_BIT);      \
-                                              delayMicroseconds(DELTAT);       \
-                                              PORTD |= _BV(M1_STEP_BIT);       \
-                                              delayMicroseconds(DELTAT); }
+#define                 STEP_M1()           do                                 \
+                                            {                                  \
+                                                PORTD &= ~_BV(M1_STEP_BIT);    \
+                                                delayMicroseconds(DELTAT);     \
+                                                PORTD |= _BV(M1_STEP_BIT);     \
+                                                delayMicroseconds(DELTAT);     \
+                                            } while (0)
 #define                 SET_DIR_M1(dir)     do                                 \
                                             {                                  \
                                                 if (dir == HIGH)               \
@@ -68,10 +71,13 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 
 #define                 ENABLE_M2()         PORTB &= ~_BV(M2_EN_BIT)
 #define                 DISABLE_M2()        PORTB |= _BV(M2_EN_BIT)
-#define                 STEP_M2()           { PORTD &= ~_BV(M2_STEP_BIT);      \
-                                              delayMicroseconds(DELTAT);       \
-                                              PORTD |= _BV(M2_STEP_BIT);       \
-                                              delayMicroseconds(DELTAT); }
+#define                 STEP_M2()           do                                 \
+                                            {                                  \
+                                                PORTD &= ~_BV(M2_STEP_BIT);    \
+                                                delayMicroseconds(DELTAT);     \
+                                                PORTD |= _BV(M2_STEP_BIT);     \
+                                                delayMicroseconds(DELTAT);     \
+                                            } while (0)
 #define                 SET_DIR_M2(dir)     do                                 \
                                             {                                  \
                                                 if (dir == HIGH)               \
@@ -86,13 +92,15 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 #define                 CONFIG_M()          CONFIG_M1(); CONFIG_M2();
                                           
 
-#define                 ENABLE_M()          ENABLE_M1(); ENABLE_M2();
+#define                 ENABLE_M()          ENABLE_M1(); ENABLE_M2()
 #define                 DISABLE_M()         DISABLE_M1(); DISABLE_M2()
 
-#define                 CONFIG_HALL_M1()    DDRC |= _BV(HALL_M1_BIT)
-#define                 CONFIG_HALL_M2()    DDRC |= _BV(HALL_M2_BIT)
+#define                 CONFIG_HALL_M1()    DDRC &= ~_BV(HALL_M1_BIT)
+#define                 CONFIG_HALL_M2()    DDRC &= ~_BV(HALL_M2_BIT)
 
 #define                 CONFIG_HALL()       CONFIG_HALL_M1(); CONFIG_HALL_M2()
+#define                 READ_HALL(joint)    (bitRead(PINC, (joint == JOINT1) ? \
+                                             HALL_M1_BIT : HALL_M2_BIT) == 0)
 
 #define                 CONFIG_RF()         DDRC |= _BV(RF_BIT)
 
