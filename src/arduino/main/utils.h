@@ -27,6 +27,9 @@
  * SOFTWARE.
  */
 
+#ifndef UTILS_H
+#define UTILS_H
+
 #include <Arduino.h>
 
 
@@ -112,6 +115,7 @@ const motor_direction   DEFAULT_DIRECTION   = RIGHT;
 const uint32_t          MOTOR_SLEEP_TIMEOUT = 10000000;
 uint32_t                LAST_ACTIVE_M1      = micros();
 uint32_t                LAST_ACTIVE_M2      = micros();
+const uint16_t          BUF_SIZE            = 32;
 
 // Function prototypes
 bool home_motor_to_origin(const joint_id joint);
@@ -119,4 +123,14 @@ void capture_sensor_data(uint16_t *sensor_values, size_t samples);
 void rotate_motor_to_next_sample(const uint32_t wanted_ang_m1, const uint32_t wanted_ang_m2);
 void inline rotate_motor_step(const joint_id joint, const motor_direction direction);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
-void inline sleep_motor(); 
+void inline sleep_motor();
+
+// Error reporting function
+static inline void throw_error(const char *message, int context)
+{
+    char error[128];
+    snprintf(error, sizeof(error), "Error: %s. Context: %d", message, context);
+    Serial.println(error);
+}
+
+#endif // UTILS_H

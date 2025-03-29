@@ -80,6 +80,7 @@ void loop()
      *                  resets to LISTEN.
      */
     static int     mode = LISTEN;
+    static char    buf[BUF_SIZE];
     static int32_t wanted_ang_m1;
     static int32_t wanted_ang_m2;
     
@@ -87,31 +88,38 @@ void loop()
     {
         if (Serial.available() > 0)
         {
-            String input     = Serial.readStringUntil('\n');
-            int    comma_ind = input.indexOf(','); 
-            wanted_ang_m1    = input.substring(0, comma_ind).toInt();
-            wanted_ang_m2    = input.substring(comma_ind + 1).toInt();
+            int32_t temp_ang_m1;
+            int32_t temp_ang_m2;
+            size_t  len = Serial.readBytesUntil('\n', buf, BUF_SIZE - 1);
+            buf[len]    = '\0';
 
-            mode             = PROCESS;
+            if (sscanf(buf, "%ld,%ld", &temp_ang_m1, &temp_ang_m2) == 2)
+            {
+                wanted_ang_m1 = temp_ang_m1;
+                wanted_ang_m2 = temp_ang_m2;
+                
+                mode          = PROCESS;
+            }
+            else
+            {
+                throw_error("Invalid input format.", mode);
+            }
         }
     }
     else if (mode == PROCESS)
     {
-        uint16_t sensor_values[SAMPLES]  = { 0 };
-        
         rotate_motor_to_next_sample(wanted_ang_m1, wanted_ang_m2);
+        
+        uint16_t sensor_values[SAMPLES] = { 0 };
         capture_sensor_data(sensor_values, SAMPLES);
         transmit_sensor_data(sensor_values, SAMPLES);
             
-        mode        = LISTEN;
+        mode = LISTEN;
     }
     else
     {
-        char error[64];
-        sprintf(error, "Unknown command: %d. Setting back to LISTEN mode.",
-                       mode);
-        Serial.println(error);
-            
+        throw_error("Unknown command.", mode);
+        
         mode = LISTEN;
     }
 
