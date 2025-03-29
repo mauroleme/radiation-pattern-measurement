@@ -52,7 +52,7 @@ void setup()
     if (home_motor_to_origin(JOINT1) == false)
     {
         DISABLE_M();
-        Serial.println("Error: Failed to detect the magnet center.");
+        throw_error("Failed to detect the magnet center of MOTOR 1");
         while (true);
     }
     
@@ -61,7 +61,7 @@ void setup()
     if (home_motor_to_origin(JOINT2) == false)
     {
         DISABLE_M();
-        Serial.println("Error: Failed to detect the magnet center.");
+        throw_error("Failed to detect the magnet center of MOTOR 2");
         while (true);
     }
     */
@@ -102,7 +102,7 @@ void loop()
             }
             else
             {
-                throw_error("Invalid input format.", mode);
+                throw_error("Invalid input format");
             }
         }
     }
@@ -118,7 +118,7 @@ void loop()
     }
     else
     {
-        throw_error("Unknown command.", mode);
+        throw_error("Unknown command");
         
         mode = LISTEN;
     }
@@ -127,9 +127,7 @@ void loop()
 }
 
 bool home_motor_to_origin(const joint_id joint)
-{
-    Serial.println("Starting search for motor origin...");
-    
+{    
     /* Homes the motor to its origin position by:
      *      - Step 1  : Rotating the motor until the Hall sensor detects a 
      *                  magnetic threshold. 
@@ -185,7 +183,6 @@ bool home_motor_to_origin(const joint_id joint)
         delayMicroseconds(HOMING_DELAY);
     }
 
-    Serial.println("Motor homed.");
     return true;
 }
 

@@ -34,7 +34,7 @@
 
 
 enum joint_id           { JOINT1    = 0     , JOINT2    = 1    };
-enum motor_direction    { RIGHT     = LOW   , LEFT      = HIGH };
+enum motor_direction    { CW        = LOW   , CCW      = HIGH };
 enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 
 // Port definitions
@@ -54,16 +54,13 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 // Macros for direct PIN manipulation
 #define                 ENABLE_M1()         PORTB &= ~_BV(M1_EN_BIT)
 #define                 DISABLE_M1()        PORTB |= _BV(M1_EN_BIT)
-#define                 STEP_M1()           do                                 \
-                                            {                                  \
-                                                PORTD &= ~_BV(M1_STEP_BIT);    \
-                                                delayMicroseconds(DELTAT);     \
-                                                PORTD |= _BV(M1_STEP_BIT);     \
-                                                delayMicroseconds(DELTAT);     \
-                                            } while (0)
+#define                 STEP_M1()           PORTD &= ~_BV(M1_STEP_BIT);        \
+                                            delayMicroseconds(DELTAT);         \
+                                            PORTD |= _BV(M1_STEP_BIT);         \
+                                            delayMicroseconds(DELTAT)
 #define                 SET_DIR_M1(dir)     do                                 \
                                             {                                  \
-                                                if (dir == HIGH)               \
+                                                if (dir == CCW)                \
                                                     PORTD |= _BV(M1_DIR_BIT);  \
                                                 else                           \
                                                     PORTD &= ~_BV(M1_DIR_BIT); \
@@ -74,13 +71,10 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 
 #define                 ENABLE_M2()         PORTB &= ~_BV(M2_EN_BIT)
 #define                 DISABLE_M2()        PORTB |= _BV(M2_EN_BIT)
-#define                 STEP_M2()           do                                 \
-                                            {                                  \
-                                                PORTD &= ~_BV(M2_STEP_BIT);    \
-                                                delayMicroseconds(DELTAT);     \
-                                                PORTD |= _BV(M2_STEP_BIT);     \
-                                                delayMicroseconds(DELTAT);     \
-                                            } while (0)
+#define                 STEP_M2()           PORTD &= ~_BV(M2_STEP_BIT);        \
+                                            delayMicroseconds(DELTAT);         \
+                                            PORTD |= _BV(M2_STEP_BIT);         \
+                                            delayMicroseconds(DELTAT)
 #define                 SET_DIR_M2(dir)     do                                 \
                                             {                                  \
                                                 if (dir == HIGH)               \
@@ -92,7 +86,7 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
                                                     _BV(M2_DIR_BIT);           \
                                             DDRB |= _BV(M2_EN_BIT)
 
-#define                 CONFIG_M()          CONFIG_M1(); CONFIG_M2();
+#define                 CONFIG_M()          CONFIG_M1(); CONFIG_M2()
                                           
 
 #define                 ENABLE_M()          ENABLE_M1(); ENABLE_M2()
@@ -111,11 +105,19 @@ enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
 const uint32_t          DELTAT              = 100;
 const uint8_t           MICROSTEPS_TO_DEG   = 16;
 const size_t            SAMPLES             = 10;
-const motor_direction   DEFAULT_DIRECTION   = RIGHT;
+const motor_direction   DEFAULT_DIRECTION   = CW;
 const uint32_t          MOTOR_SLEEP_TIMEOUT = 10000000;
 uint32_t                LAST_ACTIVE_M1      = micros();
 uint32_t                LAST_ACTIVE_M2      = micros();
 const uint16_t          BUF_SIZE            = 32;
+
+// Error reporting function
+static inline void throw_error(const char *message)
+{
+    char error[128];
+    snprintf(error, sizeof(error), "Error: %s.", message);
+    Serial.println(error);
+}
 
 // Function prototypes
 bool home_motor_to_origin(const joint_id joint);
@@ -124,13 +126,5 @@ void rotate_motor_to_next_sample(const uint32_t wanted_ang_m1, const uint32_t wa
 void inline rotate_motor_step(const joint_id joint, const motor_direction direction);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
 void inline sleep_motor();
-
-// Error reporting function
-static inline void throw_error(const char *message, int context)
-{
-    char error[128];
-    snprintf(error, sizeof(error), "Error: %s. Context: %d", message, context);
-    Serial.println(error);
-}
 
 #endif // UTILS_H
