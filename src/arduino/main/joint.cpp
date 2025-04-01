@@ -48,7 +48,7 @@ void joint_init(joint_t *joint)
 void joint_enable_motor(joint_t *joint)
 {
     *(portOutputRegister(digitalPinToPort(joint->en_pin))) &=
-        ~_BV(digitalPinToBitMask(joint->en_pin));    
+        ~_BV(digitalPinToBitMask(joint->en_pin));
 }
 
 void joint_disable_motor(joint_t *joint)
