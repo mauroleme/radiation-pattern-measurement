@@ -16,7 +16,7 @@ the microcontroller and building the antenna's radiation pattern model.
 
 ## Hardware Components
 This project includes following hardware components:
-- **Microcontroller**           : Arduino Mega 2560 Rev3;
+- **Microcontroller**           : Arduino Uno Rev3;
 - **Stepper Motor Driver**      : DRV8825;
 - **Radio Frequency Detector**  : 0.1-2.5 GHz Logaritmic Detector RF Power
                                   Meter Radio Frequency Detection Module.

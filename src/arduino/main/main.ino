@@ -2,7 +2,9 @@
  * File     : main.ino
  * Author   : Mauro Leme
  * Date     : December 12, 2024
- * Purpose  : Retrieves sensor data and sends it via serial port.
+ * Purpose  : Main control loop for the robot's joint system. 
+ *            Handles serial communication, processes motor rotation 
+ *            requests, captures sensor data, and manages state transitions.
  *
  * License  : MIT License
  *
@@ -33,14 +35,13 @@
 void setup()
 {
     // Setting up the pins
-    CONFIG_M();
-    CONFIG_HALL();
-    CONFIG_RF();
+    joint_init(&joint1);
+    joint_init(&joint2);
+    pinMode(RF_PIN, INPUT);
 
-    // Activate the motors and set initial direction
-    SET_DIR_M1(DEFAULT_DIRECTION);
-    SET_DIR_M2(DEFAULT_DIRECTION);
-    ENABLE_M();
+    // Activate the motors
+    joint_enable_motor(&joint1);
+    joint_enable_motor(&joint2);
 
     // Setting up the serial port
     Serial.setTimeout(1000);
@@ -49,18 +50,18 @@ void setup()
     Serial.println("Serial port initialized successfully!");
 
     // Set M1 to the origin
-    if (home_motor_to_origin(JOINT1) == false)
+    if (joint_home_motor(&joint1) == false)
     {
-        DISABLE_M();
+        joint_disable_motor(&joint1);
         throw_error("Failed to detect the magnet center of MOTOR 1");
         while (true);
     }
     
     /*
     // Set M2 to the origin
-    if (home_motor_to_origin(JOINT2) == false)
+    if (joint_home_motor(&joint2) == false)
     {
-        DISABLE_M();
+        joint_disable_motor(&joint2);
         throw_error("Failed to detect the magnet center of MOTOR 2");
         while (true);
     }
@@ -79,26 +80,28 @@ void loop()
      *                  completing, it sends the values via serial port and 
      *                  resets to LISTEN.
      */
-    static int     mode = LISTEN;
+    static int32_t target_angle_joint1;
+    static int32_t target_angle_joint2;
     static char    buf[BUF_SIZE];
-    static int32_t wanted_ang_m1;
-    static int32_t wanted_ang_m2;
+    
+    static mode_t mode = LISTEN;
     
     if (mode == LISTEN)
     {
         if (Serial.available() > 0)
         {
-            int32_t temp_ang_m1;
-            int32_t temp_ang_m2;
+            int32_t temp_target_angle_joint1;
+            int32_t temp_target_angle_joint2;
             size_t  len = Serial.readBytesUntil('\n', buf, BUF_SIZE - 1);
             buf[len]    = '\0';
 
-            if (sscanf(buf, "%ld,%ld", &temp_ang_m1, &temp_ang_m2) == 2)
+            if (sscanf(buf, "%ld,%ld", &temp_target_angle_joint1, 
+                                       &temp_target_angle_joint2) == 2)
             {
-                wanted_ang_m1 = temp_ang_m1;
-                wanted_ang_m2 = temp_ang_m2;
-                
-                mode          = PROCESS;
+                target_angle_joint1 = temp_target_angle_joint1;
+                target_angle_joint2 = temp_target_angle_joint2;
+
+                mode = PROCESS;
             }
             else
             {
@@ -108,7 +111,8 @@ void loop()
     }
     else if (mode == PROCESS)
     {
-        rotate_motor_to_next_sample(wanted_ang_m1, wanted_ang_m2);
+        joint_rotate_motor(&joint1, target_angle_joint1);
+        joint_rotate_motor(&joint2, target_angle_joint2);
         
         uint16_t sensor_values[SAMPLES] = { 0 };
         capture_sensor_data(sensor_values, SAMPLES);
@@ -118,124 +122,20 @@ void loop()
     }
     else
     {
-        throw_error("Unknown command");
+        throw_error("Unknown mode");
         
         mode = LISTEN;
     }
 
-    sleep_motor();
+    sleep_joints_after_timeout();
 }
 
-bool home_motor_to_origin(const joint_id joint)
-{    
-    /* Homes the motor to its origin position by:
-     *      - Step 1  : Rotating the motor until the Hall sensor detects a 
-     *                  magnetic threshold. 
-     *                    - If the sensor is already below the threshold,
-     *                    rotate the motor backward until the sensor exits the
-     *                    magnetic range.
-     *      - Step 2  : Rotate the motor to find the start and end points of 
-     *                  the range where the sensor is below the threshold.
-     *      - Step 3  : Returning the motor to the center of this range.
-     */
-
-    const uint16_t  HOMING_DELAY    = 10000;    // Lowers the velocity
-    const uint16_t  MAX_STEPS       = 5760;     // 16 * 360
-    uint16_t        steps_completed = 0;
-    uint16_t        start_step      = 0;
-    uint16_t        end_step;
-
-    // Case where the sensor is already detecting the magnet, so the motor
-    // rotates backwards until it doesn't detect it anymore
-    while (READ_HALL(joint)) 
-    { 
-        rotate_motor_step(joint, (motor_direction)(!DEFAULT_DIRECTION));
-    }
-
-    do
-    {
-        rotate_motor_step(joint, DEFAULT_DIRECTION);
-        delayMicroseconds(HOMING_DELAY);
-        steps_completed++;
-        
-        bool hall_value = READ_HALL(joint);
-        if (hall_value && start_step == 0)
-        {
-            start_step = steps_completed;
-        }
-        else if (!hall_value && start_step != 0)
-        {
-            end_step = steps_completed;
-            break;
-        }
-    } while (steps_completed < MAX_STEPS);
-
-    // If no center point was reached, throw an error
-    if (steps_completed == MAX_STEPS)
-    {
-        return false;
-    }
-
-    for (uint16_t central_step = (end_step - start_step) / 2; central_step > 0;
-         central_step--)
-    {
-        rotate_motor_step(joint, (motor_direction)(!DEFAULT_DIRECTION));
-        delayMicroseconds(HOMING_DELAY);
-    }
-
-    return true;
-}
-
-void capture_sensor_data(uint16_t *sensor_values, size_t samples)
+inline void capture_sensor_data(uint16_t *sensor_values, size_t samples)
 {
     for (size_t i = 0; i < samples; i++) 
     {
-        sensor_values[i] = analogRead(RF_BIT);
+        sensor_values[i] = analogRead(RF_PIN);
         delayMicroseconds(10000);
-    }
-}
-
-void rotate_motor_to_next_sample(const int32_t wanted_ang_m1, const int32_t wanted_ang_m2)
-{
-    static int32_t         ANG_M1   = 0;
-    static int32_t         ANG_M2   = 0;
-    const  size_t          DELTA_M1 = abs(wanted_ang_m1 - ANG_M1) *
-                                      MICROSTEPS_TO_DEG;
-    const  size_t          DELTA_M2 = abs(wanted_ang_m2 - ANG_M2) *
-                                      MICROSTEPS_TO_DEG;
-    const  motor_direction DIR_M1   = wanted_ang_m1 < ANG_M1 ? !DEFAULT_DIRECTION :
-                                                                DEFAULT_DIRECTION;
-    const  motor_direction DIR_M2   = wanted_ang_m2 < ANG_M2 ? !DEFAULT_DIRECTION :
-                                                                DEFAULT_DIRECTION;
-    for (size_t i = 0; i < DELTA_M1; i++)
-    {
-        rotate_motor_step(JOINT1, DIR_M1);
-    }
-    for (size_t i = 0; i < DELTA_M2; i++)
-    {
-        rotate_motor_step(JOINT2, DIR_M2);
-    }
-    ANG_M1 = wanted_ang_m1;
-    ANG_M2 = wanted_ang_m2;
-}
-
-void inline rotate_motor_step(const joint_id joint, const motor_direction direction)
-{
-    if (joint == JOINT1)
-    {
-        ENABLE_M1();
-        SET_DIR_M1(direction);
-        STEP_M1();
-
-        LAST_ACTIVE_M1 = micros();
-    }
-    else
-    {
-        ENABLE_M2();
-        SET_DIR_M2(direction);
-        STEP_M2();
-
-        LAST_ACTIVE_M2 = micros();
     }
 }
 
@@ -262,14 +162,8 @@ void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
     Serial.println(buffer);
 }
 
-void inline sleep_motor()
+inline void sleep_joints_after_timeout()
 {
-    if ((uint32_t)(micros() - LAST_ACTIVE_M1) >= MOTOR_SLEEP_TIMEOUT)
-    {
-        DISABLE_M1();
-    }
-    if ((uint32_t)(micros() - LAST_ACTIVE_M2) >= MOTOR_SLEEP_TIMEOUT)
-    {
-        DISABLE_M2();
-    }
+    joint_sleep_motor_after_timeout(&joint1);
+    joint_sleep_motor_after_timeout(&joint2);
 }

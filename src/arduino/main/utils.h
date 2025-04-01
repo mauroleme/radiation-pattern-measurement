@@ -2,7 +2,10 @@
  * File     : utils.h
  * Author   : Mauro Leme
  * Date     : December 12, 2024
- * Purpose  : Utilities of main.ino
+ * Purpose  : Provides utility functions and macros for the joint system. 
+ *            Includes error handling, pin configuration, and sensor data 
+ *            transmission. Improves modularity and simplifies the main 
+ *            control logic.
  *
  * License  : MIT License
  *
@@ -31,85 +34,37 @@
 #define UTILS_H
 
 #include <Arduino.h>
+#include "joint.h"
 
 
-enum joint_id           { JOINT1    = 0     , JOINT2    = 1    };
-enum motor_direction    { CW        = LOW   , CCW      = HIGH };
-enum system_state       { LISTEN    = 0     , PROCESS   = 1    };
+typedef enum { LISTEN = 0, PROCESS = 1 } mode_t;
 
-// Port definitions
-#define                 M1_STEP_BIT         PD6
-#define                 M1_DIR_BIT          PD7
-#define                 M1_EN_BIT           PB0
+// Joint creation
+joint_t joint1 =
+{
+    .step_pin  = PD6,
+    .dir_pin   = PD7,
+    .en_pin    = PB0,
 
-#define                 M2_STEP_BIT         PD5
-#define                 M2_DIR_BIT          PD4
-#define                 M2_EN_BIT           PB4
+    .hall_pin  = PC0
+};
 
-#define                 HALL_M1_BIT         PC0
-#define                 HALL_M2_BIT         PC1
+joint_t joint2 = 
 
-#define                 RF_BIT              PC2
+{
+    .step_pin  = PD5,
+    .dir_pin   = PD4,
+    .en_pin    = PB4,
 
-// Macros for direct PIN manipulation
-#define                 ENABLE_M1()         PORTB &= ~_BV(M1_EN_BIT)
-#define                 DISABLE_M1()        PORTB |= _BV(M1_EN_BIT)
-#define                 STEP_M1()           PORTD &= ~_BV(M1_STEP_BIT);        \
-                                            delayMicroseconds(DELTAT);         \
-                                            PORTD |= _BV(M1_STEP_BIT);         \
-                                            delayMicroseconds(DELTAT)
-#define                 SET_DIR_M1(dir)     do                                 \
-                                            {                                  \
-                                                if (dir == CCW)                \
-                                                    PORTD |= _BV(M1_DIR_BIT);  \
-                                                else                           \
-                                                    PORTD &= ~_BV(M1_DIR_BIT); \
-                                            } while (0)
-#define                 CONFIG_M1()         DDRD |= _BV(M1_STEP_BIT) |         \
-                                                    _BV(M1_DIR_BIT);           \
-                                            DDRB |= _BV(M1_EN_BIT)
+    .hall_pin  = PC1
+};
 
-#define                 ENABLE_M2()         PORTB &= ~_BV(M2_EN_BIT)
-#define                 DISABLE_M2()        PORTB |= _BV(M2_EN_BIT)
-#define                 STEP_M2()           PORTD &= ~_BV(M2_STEP_BIT);        \
-                                            delayMicroseconds(DELTAT);         \
-                                            PORTD |= _BV(M2_STEP_BIT);         \
-                                            delayMicroseconds(DELTAT)
-#define                 SET_DIR_M2(dir)     do                                 \
-                                            {                                  \
-                                                if (dir == HIGH)               \
-                                                    PORTD |= _BV(M2_DIR_BIT);  \
-                                                else                           \
-                                                    PORTD &= ~_BV(M2_DIR_BIT); \
-                                            } while (0)
-#define                 CONFIG_M2()         DDRD |= _BV(M2_STEP_BIT) |         \
-                                                    _BV(M2_DIR_BIT);           \
-                                            DDRB |= _BV(M2_EN_BIT)
-
-#define                 CONFIG_M()          CONFIG_M1(); CONFIG_M2()
-                                          
-
-#define                 ENABLE_M()          ENABLE_M1(); ENABLE_M2()
-#define                 DISABLE_M()         DISABLE_M1(); DISABLE_M2()
-
-#define                 CONFIG_HALL_M1()    DDRC &= ~_BV(HALL_M1_BIT)
-#define                 CONFIG_HALL_M2()    DDRC &= ~_BV(HALL_M2_BIT)
-
-#define                 CONFIG_HALL()       CONFIG_HALL_M1(); CONFIG_HALL_M2()
-#define                 READ_HALL(joint)    (bitRead(PINC, (joint == JOINT1) ? \
-                                             HALL_M1_BIT : HALL_M2_BIT) == 0)
-
-#define                 CONFIG_RF()         DDRC |= _BV(RF_BIT)
+// Radio-frequency detector PIN 
+const uint16_t RF_PIN   = A2;
 
 // Constants definitions
-const uint32_t          DELTAT              = 100;
-const uint8_t           MICROSTEPS_TO_DEG   = 16;
-const size_t            SAMPLES             = 10;
-const motor_direction   DEFAULT_DIRECTION   = CW;
-const uint32_t          MOTOR_SLEEP_TIMEOUT = 10000000;
-uint32_t                LAST_ACTIVE_M1      = micros();
-uint32_t                LAST_ACTIVE_M2      = micros();
-const uint16_t          BUF_SIZE            = 32;
+const size_t   SAMPLES  = 10;
+const uint16_t BUF_SIZE = 32;
 
 // Error reporting function
 static inline void throw_error(const char *message)
@@ -120,11 +75,8 @@ static inline void throw_error(const char *message)
 }
 
 // Function prototypes
-bool home_motor_to_origin(const joint_id joint);
-void capture_sensor_data(uint16_t *sensor_values, size_t samples);
-void rotate_motor_to_next_sample(const uint32_t wanted_ang_m1, const uint32_t wanted_ang_m2);
-void inline rotate_motor_step(const joint_id joint, const motor_direction direction);
+inline void capture_sensor_data(uint16_t *sensor_values, size_t samples);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
-void inline sleep_motor();
+inline void sleep_joints_after_timeout();
 
 #endif // UTILS_H
