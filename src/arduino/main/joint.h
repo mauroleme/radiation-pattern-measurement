@@ -58,24 +58,25 @@ static const uint16_t   HOMING_DELAY        = 10000;
 static const uint16_t   MAX_HOMING_STEPS    = 5760;      // DEG_TO_STEP(360)
 static motor_direction  DEFAULT_DIRECTION   = CW;
 static const uint32_t   MOTOR_SLEEP_TIMEOUT = 10000000;
-static uint32_t         MOTOR_LAST_ACTIVE   = micros();
+static uint32_t         MOTOR_LAST_ACTIVE   = 0;
+
 
 // Setting up the joint
 void joint_init(joint_t *joint);
 
 // Toggling motor
-inline void joint_enable_motor(joint_t *joint);
-inline void joint_disable_motor(joint_t *joint);
+void joint_enable_motor(joint_t *joint);
+void joint_disable_motor(joint_t *joint);
 
 // Motor direction
-static inline void _Joint_set_motor_direction(joint_t *joint,
-                                              const motor_direction);
-inline void joint_set_default_motor_direction(const motor_direction direction);
+static void _Joint_set_motor_direction(joint_t *joint,
+                                       const motor_direction);
+void joint_set_default_motor_direction(const motor_direction direction);
 motor_direction joint_get_default_direction();
 
 // Motor rotation
-static inline void _Joint_step_motor(joint_t *joint,
-                                     const motor_direction direction);
+static void _Joint_step_motor(joint_t *joint,
+                              const motor_direction direction);
 void joint_rotate_motor(joint_t *joint, const int32_t target_angle);
  
 // Motor homing

@@ -1,5 +1,5 @@
 /*
- * File     : joint.c
+ * File     : joint.cpp
  * Author   : Mauro Leme
  * Date     : March 31, 2024
  * Purpose  : Implements the functions declared in `joint.h` to control 
@@ -45,21 +45,21 @@ void joint_init(joint_t *joint)
 }
 
 // Toggling motor
-inline void joint_enable_motor(joint_t *joint)
+void joint_enable_motor(joint_t *joint)
 {
     *(portOutputRegister(digitalPinToPort(joint->en_pin))) &=
-        ~_BV(digitalPinToBitMask(joint->en_pin));
+        ~_BV(digitalPinToBitMask(joint->en_pin));    
 }
 
-inline void joint_disable_motor(joint_t *joint)
+void joint_disable_motor(joint_t *joint)
 {
     *(portOutputRegister(digitalPinToPort(joint->en_pin))) |=
         _BV(digitalPinToBitMask(joint->en_pin));
 }
 
 // Motor direction
-static inline void _Joint_set_motor_direction(joint_t *joint,
-                                              const motor_direction direction)
+static void _Joint_set_motor_direction(joint_t *joint,
+                                       const motor_direction direction)
 {
     *(portOutputRegister(digitalPinToPort(joint->dir_pin))) =
         (direction == CW) ?
@@ -69,7 +69,7 @@ static inline void _Joint_set_motor_direction(joint_t *joint,
          _BV(digitalPinToBitMask(joint->dir_pin)));
 }
 
-inline void joint_set_default_motor_direction(const motor_direction direction)
+void joint_set_default_motor_direction(const motor_direction direction)
 {
     DEFAULT_DIRECTION = direction; 
 }
@@ -80,8 +80,8 @@ inline motor_direction joint_get_default_direction()
 }
 
 // Motor rotation
-static inline void _Joint_step_motor(joint_t *joint, 
-                                     const motor_direction direction)
+static void _Joint_step_motor(joint_t *joint, 
+                              const motor_direction direction)
 {
     joint_enable_motor(joint);
     _Joint_set_motor_direction(joint, direction); 
@@ -123,7 +123,7 @@ bool joint_home_motor(joint_t *joint)
     // rotates backwards until it doesn't detect it anymore
     while (joint_read_hall(joint)) 
     { 
-        _Joint_step_motor(joint, !DEFAULT_DIRECTION);
+        _Joint_step_motor(joint, (motor_direction)!DEFAULT_DIRECTION);
     }
 
     // Find the start and end of the magnet
@@ -149,7 +149,7 @@ bool joint_home_motor(joint_t *joint)
     uint16_t central_steps = (end_step - start_step) >> 1;
     while (central_steps--) 
     {
-        _Joint_step_motor(joint, !DEFAULT_DIRECTION);
+        _Joint_step_motor(joint, (motor_direction)!DEFAULT_DIRECTION);
         delayMicroseconds(HOMING_DELAY);
     }
 
