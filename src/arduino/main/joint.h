@@ -40,8 +40,8 @@
 // Macros
 // ===================================
 
-#define DEG_TO_STEP(deg)  ((deg) * STEPS_PER_DEGREE)
-#define STEP_TO_DEG(step) ((step) / STEPS_PER_DEGREE)
+#define DEG_TO_STEP(deg)  ((deg) * steps_per_degree)
+#define STEP_TO_DEG(step) ((step) / steps_per_degree)
 
 
 // ===================================

@@ -68,7 +68,7 @@ Joint joint1 =
     J1_HALL_PIN
 };
 
-joint_t joint2 = 
+Joint joint2 = 
 {
     J2_STEP_PIN,
     J2_DIR_PIN,
@@ -216,8 +216,8 @@ void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
 
 inline void sleep_joints_after_timeout()
 {
-    joint1.SleepMotorAfterTimeout();
-    joint2.SleepMotorAfterTimeout();
+    joint1.SleepMotorAfterTimeOut();
+    joint2.SleepMotorAfterTimeOut();
 }
 
 inline void log_error(const char *message)

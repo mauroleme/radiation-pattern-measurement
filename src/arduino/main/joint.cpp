@@ -116,7 +116,7 @@ void Joint::RotateMotor(int32_t target_angle)
     angle = target_angle;
 }
 
-void Joint::SleepMotorAfterTimeout()
+void Joint::SleepMotorAfterTimeOut()
 {
     if (micros() - motor_last_active >= MOTOR_SLEEP_TIMEOUT)
     {
