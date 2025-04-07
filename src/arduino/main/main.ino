@@ -29,12 +29,59 @@
  * SOFTWARE.
  */
 
-#include "utils.h"
+#include <Arduino.h>
+#include "joint.h"
+
+
+// ===================================
+// Configuration Constants
+// ===================================
+
+#define        RF_PIN     A2
+  
+const size_t   SAMPLES  = 10;
+const uint16_t BUF_SIZE = 32;
+
+
+// ===================================
+// Motor Control Structures
+// ===================================
+
+typedef enum { LISTEN = 0, PROCESS = 1 } mode_t;
+
+joint_t joint1 =
+{
+    .step_pin  = PD6,
+    .dir_pin   = PD7,
+    .en_pin    = PB0,
+
+    .hall_pin  = PC0
+};
+
+joint_t joint2 = 
+
+{
+    .step_pin  = PD5,
+    .dir_pin   = PD4,
+    .en_pin    = PB4,
+
+    .hall_pin  = PC1
+};
+
+
+// ===================================
+// Function Prototypes
+// ===================================
+
+inline void capture_sensor_data(uint16_t *sensor_values, size_t samples);
+void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
+inline void sleep_joints_after_timeout();
+inline void throw_error(const char *message);
 
 
 void setup()
 {
-    // Setting up the pins
+    // Setting up the PINs 
     joint_init(&joint1);
     joint_init(&joint2);
     pinMode(RF_PIN, INPUT);
@@ -57,7 +104,6 @@ void setup()
         while (true);
     }
     
-    /*
     // Set M2 to the origin
     if (joint_home_motor(&joint2) == false)
     {
@@ -65,7 +111,6 @@ void setup()
         throw_error("Failed to detect the magnet center of MOTOR 2");
         while (true);
     }
-    */
 
     // Signal MATLAB to begin requesting sample data
     Serial.println("Ready.");
@@ -166,4 +211,11 @@ inline void sleep_joints_after_timeout()
 {
     joint_sleep_motor_after_timeout(&joint1);
     joint_sleep_motor_after_timeout(&joint2);
+}
+
+inline void throw_error(const char *message)
+{
+    char error[128];
+    snprintf(error, sizeof(error), "Error: %s.", message);
+    Serial.println(error);
 }

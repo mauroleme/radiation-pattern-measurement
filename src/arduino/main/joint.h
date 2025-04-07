@@ -36,8 +36,29 @@
 #include <Arduino.h>
 
 
-#define DEG_TO_STEP(deg)  ((deg) * 16)
-#define STEP_TO_DEG(step) ((step) / 16)
+// ===================================
+// Macros
+// ===================================
+
+#define DEG_TO_STEP(deg)  ((deg) * STEPS_PER_DEGREE)
+#define STEP_TO_DEG(step) ((step) / STEPS_PER_DEGREE)
+
+
+// ===================================
+// Configuration Constants
+// ===================================
+
+static const uint16_t DELTA_T             = 100;
+static const uint16_t HOMING_DELAY        = 10000;
+static const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
+
+// Steps per degree (modifiable at runtime)
+static uint16_t       STEPS_PER_DEGREE    = 16;
+
+
+// ===================================
+// Types
+// ===================================
 
 typedef enum { CW = LOW, CCW = HIGH } motor_direction;
 
@@ -52,40 +73,74 @@ typedef struct
     uint8_t hall_pin;
 } joint_t;
 
-static volatile int32_t ANGLE               = 0; 
-static const uint16_t   DELTA_T             = 100;
-static const uint16_t   HOMING_DELAY        = 10000;
-static const uint16_t   MAX_HOMING_STEPS    = 5760;      // DEG_TO_STEP(360)
-static motor_direction  DEFAULT_DIRECTION   = CW;
-static const uint32_t   MOTOR_SLEEP_TIMEOUT = 10000000;
-static uint32_t         MOTOR_LAST_ACTIVE   = 0;
+
+// ===================================
+// Global State
+// ===================================
+
+static volatile int32_t angle             = 0;
+static uint32_t         motor_last_active = 0;
+static motor_direction  default_direction = CW;
 
 
-// Setting up the joint
+// ===================================
+// Setup
+// ===================================
+
 void joint_init(joint_t *joint);
 
-// Toggling motor
+
+// ==============================
+// Motor Toggling 
+// ==============================
+
 void joint_enable_motor(joint_t *joint);
 void joint_disable_motor(joint_t *joint);
 
-// Motor direction
-static void _Joint_set_motor_direction(joint_t *joint,
-                                       const motor_direction);
+
+// ==============================
+// Motor Direction
+// ==============================
+
 void joint_set_default_motor_direction(const motor_direction direction);
 motor_direction joint_get_default_direction();
 
-// Motor rotation
-static void _Joint_step_motor(joint_t *joint,
-                              const motor_direction direction);
-void joint_rotate_motor(joint_t *joint, const int32_t target_angle);
- 
-// Motor homing
-bool joint_home_motor(joint_t *joint);
+// Internal helper
+static void _Joint_set_motor_direction(joint_t *joint,
+                                       const motor_direction);
 
-// Sleeping motor
+
+// ==============================
+// Motor Control
+// ==============================
+
+void joint_rotate_motor(joint_t *joint, const int32_t target_angle);
 void joint_sleep_motor_after_timeout(joint_t *joint);
 
-// Hall reading
+// Internal helper
+static void _Joint_step_motor(joint_t *joint,
+                              const motor_direction direction);
+
+
+// ==============================
+// Motor Homing
+// ==============================
+
+bool joint_home_motor(joint_t *joint);
+
+
+// ==============================
+// Motor Steps per Degree
+// ==============================
+
+void joint_set_steps_per_degree(const uint16_t target_steps_per_degree);
+uint16_t joing_get_steps_per_degree();
+
+
+// ==============================
+// Hall Effect Sensor Reading
+// ==============================
+
 bool joint_read_hall(joint_t *joint);
 
 #endif // JOINT_H
