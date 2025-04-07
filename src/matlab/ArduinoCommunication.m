@@ -53,9 +53,9 @@ for motor1Degree = 0:359
                                                          motor2Degree));
                 
                 % Check for Arduino error message
-                if startsWith(response, "Error:")
+                if startsWith(response, "Error: ")
                     error("Arduino error: %s", extractAfter(response, ...
-                                                            "Error:"));
+                                                            "Error: "));
                 end
                 
                 % Convert and validate numeric data
