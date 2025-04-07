@@ -13,12 +13,12 @@ disp("Available COM ports:");
 disp(availablePorts);
 
 % Serial port configuration
-arduinoPort = availablePorts{1};                                % Automatically choose the first available port
-baudRate    = 115200;                                           % Serial communication baudrate (bps)
+arduinoPort             = availablePorts{1};                    % Automatically choose the first available port
+baudRate                = 115200;                               % Serial communication baudrate (bps)
 
 % Initialize the serial port
-serialPort          = serialport(arduinoPort, baudRate);        % Configure the serial port
-serialPort.Timeout  = 30;                                       % Set the timeout duration (seconds)
+serialPort              = serialport(arduinoPort, baudRate);    % Configure the serial port
+serialPort.Timeout      = 30;                                   % Set the timeout duration (seconds)
 configureTerminator(serialPort, "CR/LF");                       % Set the line terminator
 
 disp("Waiting for Arduino to initialize...");
