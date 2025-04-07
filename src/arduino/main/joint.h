@@ -94,7 +94,7 @@ class Joint
         // Joint State
         // ===================================
         
-        uint16_t        steps_per_degree ;
+        uint16_t        steps_per_degree;
         int32_t         angle;
         uint32_t        motor_last_active;
         motor_direction default_direction;
