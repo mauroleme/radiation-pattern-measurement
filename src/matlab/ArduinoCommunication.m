@@ -54,7 +54,7 @@ for motor1Degree = 0:359
                 
                 % Check for Arduino error message
                 if startsWith(response, "Error:")
-                    error("Arduino error: %s", extractAfter(response,
+                    error("Arduino error: %s", extractAfter(response, ...
                                                             "Error:"));
                 end
                 
