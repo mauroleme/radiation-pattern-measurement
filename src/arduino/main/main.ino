@@ -37,8 +37,19 @@
 // Configuration Constants
 // ===================================
 
-#define        RF_PIN     A2
-  
+#define        J1_STEP_PIN PD6
+#define        J1_DIR_PIN  PD7
+#define        J1_EN_PIN   PB0
+#define        J1_HALL_PIN PC0
+
+#define        J2_STEP_PIN PD5
+#define        J2_DIR_PIN  PD4
+#define        J2_EN_PIN   PB4
+#define        J2_HALL_PIN PC1
+
+#define        RF_PIN      A2
+
+
 const size_t   SAMPLES  = 10;
 const uint16_t BUF_SIZE = 32;
 
@@ -49,22 +60,20 @@ const uint16_t BUF_SIZE = 32;
 
 typedef enum { LISTEN = 0, PROCESS = 1 } mode_t;
 
-joint_t joint1 =
+Joint joint1 =
 {
-    .step_pin  = PD6,
-    .dir_pin   = PD7,
-    .en_pin    = PB0,
-
-    .hall_pin  = PC0
+    J1_STEP_PIN,
+    J1_DIR_PIN,
+    J1_EN_PIN,
+    J1_HALL_PIN
 };
 
 joint_t joint2 = 
 {
-    .step_pin  = PD5,
-    .dir_pin   = PD4,
-    .en_pin    = PB4,
-
-    .hall_pin  = PC1
+    J2_STEP_PIN,
+    J2_DIR_PIN,
+    J2_EN_PIN,
+    J2_HALL_PIN
 };
 
 
@@ -75,19 +84,19 @@ joint_t joint2 =
 inline void capture_sensor_data(uint16_t *sensor_values, size_t samples);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
 inline void sleep_joints_after_timeout();
-inline void throw_error(const char *message);
+inline void log_error(const char *message);
 
 
 void setup()
 {
     // Setting up the PINs 
-    joint_init(&joint1);
-    joint_init(&joint2);
+    joint1.Init();
+    joint2.Init();
     pinMode(RF_PIN, INPUT);
 
     // Activate the motors
-    joint_enable_motor(&joint1);
-    joint_enable_motor(&joint2);
+    joint1.EnableMotor();
+    joint2.EnableMotor();
 
     // Setting up the serial port
     Serial.setTimeout(1000);
@@ -96,18 +105,18 @@ void setup()
     Serial.println("Serial port initialized successfully!");
 
     // Set M1 to the origin
-    if (joint_home_motor(&joint1) == false)
+    if (joint1.HomeMotor() == false)
     {
-        joint_disable_motor(&joint1);
-        throw_error("Failed to detect the magnet center of MOTOR 1");
+        joint1.DisableMotor();
+        log_error("Failed to detect the magnet center of MOTOR 1");
         while (true);
     }
     
     // Set M2 to the origin
-    if (joint_home_motor(&joint2) == false)
+    if (joint2.HomeMotor() == false)
     {
-        joint_disable_motor(&joint2);
-        throw_error("Failed to detect the magnet center of MOTOR 2");
+        joint2.DisableMotor();
+        log_error("Failed to detect the magnet center of MOTOR 2");
         while (true);
     }
 
@@ -129,7 +138,6 @@ void loop()
     static char    buf[BUF_SIZE];
     
     static mode_t mode = LISTEN;
-    
     if (mode == LISTEN)
     {
         if (Serial.available() > 0)
@@ -149,14 +157,14 @@ void loop()
             }
             else
             {
-                throw_error("Invalid input format");
+                log_error("Invalid input format");
             }
         }
     }
     else if (mode == PROCESS)
     {
-        joint_rotate_motor(&joint1, target_angle_joint1);
-        joint_rotate_motor(&joint2, target_angle_joint2);
+        joint1.RotateMotor(target_angle_joint1);
+        joint2.RotateMotor(target_angle_joint2);
         
         uint16_t sensor_values[SAMPLES] = { 0 };
         capture_sensor_data(sensor_values, SAMPLES);
@@ -166,7 +174,7 @@ void loop()
     }
     else
     {
-        throw_error("Unknown mode");
+        log_error("Unknown mode");
         
         mode = LISTEN;
     }
@@ -190,8 +198,8 @@ void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
      *      - 1 char for each comma;
      *      - 1 char for null terminator.
      */
-    char    buffer[samples * 6];
-    size_t  index = 0;
+    char   buffer[samples * 6];
+    size_t index = 0;
     
     for (size_t i = 0; i < samples; i++)
     {
@@ -208,11 +216,11 @@ void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
 
 inline void sleep_joints_after_timeout()
 {
-    joint_sleep_motor_after_timeout(&joint1);
-    joint_sleep_motor_after_timeout(&joint2);
+    joint1.SleepMotorAfterTimeout();
+    joint2.SleepMotorAfterTimeout();
 }
 
-inline void throw_error(const char *message)
+inline void log_error(const char *message)
 {
     char error[128];
     snprintf(error, sizeof(error), "Error: %s.", message);

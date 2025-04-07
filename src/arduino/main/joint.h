@@ -37,18 +37,6 @@
 
 
 // ===================================
-// Configuration Constants
-// ===================================
-
-static const uint16_t DELTA_T             = 100;
-static const uint16_t HOMING_DELAY        = 10000;
-static const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
-
-// Steps per degree (modifiable at runtime)
-static uint16_t       STEPS_PER_DEGREE    = 16;
-
-
-// ===================================
 // Macros
 // ===================================
 
@@ -57,90 +45,68 @@ static uint16_t       STEPS_PER_DEGREE    = 16;
 
 
 // ===================================
+// Configuration Constants
+// ===================================
+
+const uint16_t DELTA_T             = 100;
+const uint16_t HOMING_DELAY        = 10000;
+const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
+
+
+// ===================================
 // Types
 // ===================================
 
 typedef enum { CW = LOW, CCW = HIGH } motor_direction;
 
-typedef struct
+
+// ===================================
+// Class Declaration 
+// ===================================
+
+class Joint
 {
-    // Motor pins
-    uint8_t step_pin;
-    uint8_t dir_pin;
-    uint8_t en_pin;
-
-    // Hall pin
-    uint8_t hall_pin;
-} joint_t;
-
-
-// ===================================
-// Global State
-// ===================================
-
-static volatile int32_t angle             = 0;
-static uint32_t         motor_last_active = 0;
-static motor_direction  default_direction = CW;
-
-
-// ===================================
-// Setup
-// ===================================
-
-void joint_init(joint_t *joint);
+    public:
+        Joint(uint8_t step_pin, uint8_t dir_pin,
+              uint8_t en_pin,   uint8_t hall_pin)
+            : step_pin_(step_pin), dir_pin_(dir_pin)
+            , en_pin_(en_pin), hall_pin_(hall_pin)
+            , angle(0), motor_last_active(0), default_direction(CW)
+            {}
+        void Init();
+        void EnableMotor();
+        void DisableMotor();
+        void SetDefaultMotorDirection(const motor_direction target_direction);
+        motor_direction GetDefaultMotorDirection(); 
+        void RotateMotor(const int32_t target_angle);
+        void SleepMotorAfterTimeOut();
+        bool HomeMotor();
+        void SetStepsPerDegree(const uint16_t target_steps_per_degree);
+        uint16_t GetStepsPerDegree();
+        bool ReadHall();
 
 
-// ==============================
-// Motor Toggling 
-// ==============================
-
-void joint_enable_motor(joint_t *joint);
-void joint_disable_motor(joint_t *joint);
-
-
-// ==============================
-// Motor Direction
-// ==============================
-
-void joint_set_default_motor_direction(const motor_direction direction);
-motor_direction joint_get_default_direction();
-
-// Internal helper
-static void _Joint_set_motor_direction(joint_t *joint,
-                                       const motor_direction);
-
-
-// ==============================
-// Motor Control
-// ==============================
-
-void joint_rotate_motor(joint_t *joint, const int32_t target_angle);
-void joint_sleep_motor_after_timeout(joint_t *joint);
-
-// Internal helper
-static void _Joint_step_motor(joint_t *joint,
-                              const motor_direction direction);
-
-
-// ==============================
-// Motor Homing
-// ==============================
-
-bool joint_home_motor(joint_t *joint);
-
-
-// ==============================
-// Motor Steps per Degree
-// ==============================
-
-void joint_set_steps_per_degree(const uint16_t target_steps_per_degree);
-uint16_t joing_get_steps_per_degree();
-
-
-// ==============================
-// Hall Effect Sensor Reading
-// ==============================
-
-bool joint_read_hall(joint_t *joint);
+    private:
+        void SetMotorDirection(const motor_direction target_direction);
+        void StepMotor(const motor_direction target_direction);
+        
+        // ===================================
+        // Joint State
+        // ===================================
+        
+        uint16_t        steps_per_degree    = 16;
+        int32_t         angle               = 0;
+        uint32_t        motor_last_active   = 0;
+        motor_direction default_direction   = CW;
+        
+        // ===================================
+        // Hardware Pins
+        // ===================================
+        
+        uint8_t         step_pin_;
+        uint8_t         dir_pin_;
+        uint8_t         en_pin_;
+        uint8_t         hall_pin_;
+};
 
 #endif // JOINT_H

@@ -36,15 +36,21 @@
 // Setup
 // ===================================
 
-void joint_init(joint_t *joint)
+void Joint::Init()
 {
     // Configure motor pins as output
-    (*(portModeRegister(digitalPinToPort(joint->step_pin))) = OUTPUT);
-    (*(portModeRegister(digitalPinToPort(joint->dir_pin)))  = OUTPUT);
-    (*(portModeRegister(digitalPinToPort(joint->en_pin)))   = OUTPUT);
+    *portModeRegister(digitalPinToPort(step_pin_))   |=
+        digitalPinToBitMask(step_pin_);
+    *portModeRegister(digitalPinToPort(dir_pin_))    |=
+        digitalPinToBitMask(dir_pin_);
+    *portModeRegister(digitalPinToPort(en_pin_))     |=
+        digitalPinToBitMask(en_pin_);
     
     // Configure hall sensor pin as input
-    (*(portModeRegister(digitalPinToPort(joint->hall_pin))) = INPUT_PULLUP);
+    *portModeRegister(digitalPinToPort(hall_pin_))   &=
+        ~digitalPinToBitMask(hall_pin_);
+    *portOutputRegister(digitalPinToPort(hall_pin_)) |=
+        digitalPinToBitMask(hall_pin_);
 }
 
 
@@ -52,16 +58,16 @@ void joint_init(joint_t *joint)
 // Motor Toggling 
 // ==============================
 
-void joint_enable_motor(joint_t *joint)
+void Joint::EnableMotor()
 {
-    *(portOutputRegister(digitalPinToPort(joint->en_pin))) &=
-        ~_BV(digitalPinToBitMask(joint->en_pin));
+    *portOutputRegister(digitalPinToPort(en_pin_))   &=
+        ~digitalPinToBitMask(en_pin_);
 }
 
-void joint_disable_motor(joint_t *joint)
+void Joint::DisableMotor()
 {
-    *(portOutputRegister(digitalPinToPort(joint->en_pin))) |=
-        _BV(digitalPinToBitMask(joint->en_pin));
+    *portOutputRegister(digitalPinToPort(en_pin_))   |=
+        digitalPinToBitMask(en_pin_);
 }
 
 
@@ -69,25 +75,24 @@ void joint_disable_motor(joint_t *joint)
 // Motor Direction
 // ==============================
 
-void joint_set_default_motor_direction(const motor_direction direction)
+void Joint::SetDefaultMotorDirection(const motor_direction target_direction)
 {
-    default_direction = direction; 
+    default_direction = target_direction; 
 }
 
-inline motor_direction joint_get_default_direction()
+motor_direction Joint::GetDefaultMotorDirection()
 {
     return default_direction;
 }
 
-static void _Joint_set_motor_direction(joint_t *joint,
-                                       const motor_direction direction)
+void Joint::SetMotorDirection(const motor_direction target_direction)
 {
-    *(portOutputRegister(digitalPinToPort(joint->dir_pin))) =
-        (direction == CW) ?
-        (*(portOutputRegister(digitalPinToPort(joint->dir_pin))) &
-         ~_BV(digitalPinToBitMask(joint->dir_pin))) :
-        (*(portOutputRegister(digitalPinToPort(joint->dir_pin))) |
-         _BV(digitalPinToBitMask(joint->dir_pin)));
+    *portOutputRegister(digitalPinToPort(dir_pin_)) =
+        (target_direction == CW) ?
+        (*portOutputRegister(digitalPinToPort(dir_pin_)) &
+        ~digitalPinToBitMask(dir_pin_)) :
+        (*portOutputRegister(digitalPinToPort(dir_pin_)) |
+        digitalPinToBitMask(dir_pin_));
 }
 
 
@@ -95,7 +100,7 @@ static void _Joint_set_motor_direction(joint_t *joint,
 // Motor Control
 // ==============================
 
-void joint_rotate_motor(joint_t *joint, int32_t target_angle)
+void Joint::RotateMotor(int32_t target_angle)
 {
     target_angle              = (target_angle % 360 + 360) % 360;
     int32_t         diff      = (target_angle - angle + 540) % 360 - 180;    
@@ -106,30 +111,29 @@ void joint_rotate_motor(joint_t *joint, int32_t target_angle)
 
     for (uint32_t i = 0; i < steps; i++)
     {
-        _Joint_step_motor(joint, direction);
+        StepMotor(direction);
     }
     angle = target_angle;
 }
 
-void joint_sleep_motor_after_timeout(joint_t *joint)
+void Joint::SleepMotorAfterTimeout()
 {
     if (micros() - motor_last_active >= MOTOR_SLEEP_TIMEOUT)
     {
-        joint_disable_motor(joint);
+        DisableMotor();
     }
 }
 
-static void _Joint_step_motor(joint_t *joint, 
-                              const motor_direction direction)
+void Joint::StepMotor(const motor_direction target_direction)
 {
-    joint_enable_motor(joint);
-    _Joint_set_motor_direction(joint, direction); 
+    EnableMotor();
+    SetMotorDirection(target_direction); 
 
-    *(portOutputRegister(digitalPinToPort(joint->step_pin))) &=
-        ~_BV(digitalPinToBitMask(joint->step_pin));
+    *portOutputRegister(digitalPinToPort(step_pin_)) &=
+        ~digitalPinToBitMask(step_pin_);
     delayMicroseconds(DELTA_T);
-    *(portOutputRegister(digitalPinToPort(joint->step_pin))) |=
-        _BV(digitalPinToBitMask(joint->step_pin));
+    *portOutputRegister(digitalPinToPort(step_pin_)) |=
+        digitalPinToBitMask(step_pin_);
     delayMicroseconds(DELTA_T);
 
     motor_last_active = micros();
@@ -140,7 +144,7 @@ static void _Joint_step_motor(joint_t *joint,
 // Motor Homing
 // ==============================
 
-bool joint_home_motor(joint_t *joint)
+bool Joint::HomeMotor()
 {
     const uint16_t MAX_HOMING_STEPS = DEG_TO_STEP(360);
     uint16_t       steps_completed  = 0;
@@ -149,20 +153,20 @@ bool joint_home_motor(joint_t *joint)
 
     // Case where the sensor is already detecting the magnet, so the motor
     // rotates backwards until it doesn't detect it anymore
-    while (joint_read_hall(joint)) 
+    while (ReadHall()) 
     { 
-        _Joint_step_motor(joint, (motor_direction)!default_direction);
+        StepMotor((motor_direction)!default_direction);
     }
 
     // Find the start and end of the magnet
     do
     {
-        _Joint_step_motor(joint, default_direction);
+        StepMotor(default_direction);
         steps_completed++;
         
         delayMicroseconds(HOMING_DELAY);
         
-        bool hall_state  = joint_read_hall(joint);
+        bool hall_state  = ReadHall();
         start_step      |= hall_state * (!start_step * steps_completed); 
         end_step         = steps_completed * (!hall_state && start_step);
     }
@@ -178,7 +182,7 @@ bool joint_home_motor(joint_t *joint)
     uint16_t central_steps = (end_step - start_step) >> 1;
     while (central_steps--) 
     {
-        _Joint_step_motor(joint, (motor_direction)!default_direction);
+        StepMotor((motor_direction)!default_direction);
         delayMicroseconds(HOMING_DELAY);
     }
 
@@ -190,14 +194,14 @@ bool joint_home_motor(joint_t *joint)
 // Motor Steps per Degree
 // ==============================
 
-void joint_set_steps_per_degree(const uint16_t target_steps_per_degree)
+void Joint::SetStepsPerDegree(const uint16_t target_steps_per_degree)
 {
-    STEPS_PER_DEGREE = target_steps_per_degree;
+    steps_per_degree = target_steps_per_degree;
 }
 
-uint16_t joint_get_steps_per_degree()
+uint16_t Joint::GetStepsPerDegree()
 {
-    return STEPS_PER_DEGREE;
+    return steps_per_degree;
 }
 
 
@@ -205,8 +209,8 @@ uint16_t joint_get_steps_per_degree()
 // Hall Effect Sensor Reading
 // ==============================
 
-bool joint_read_hall(joint_t *joint)
+bool Joint::ReadHall()
 {
-    return bitRead(*(portInputRegister(digitalPinToPort(joint->hall_pin))),
-                   digitalPinToBitMask(joint->hall_pin));
+    return !(*portInputRegister(digitalPinToPort(hall_pin_)) &
+             digitalPinToBitMask(hall_pin_));
 }
