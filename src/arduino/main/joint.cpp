@@ -142,9 +142,10 @@ static void _Joint_step_motor(joint_t *joint,
 
 bool joint_home_motor(joint_t *joint)
 {
-    uint16_t steps_completed = 0;
-    uint16_t start_step      = 0;
-    uint16_t end_step;
+    const uint16_t MAX_HOMING_STEPS = DEG_TO_STEP(360);
+    uint16_t       steps_completed  = 0;
+    uint16_t       start_step       = 0;
+    uint16_t       end_step;
 
     // Case where the sensor is already detecting the magnet, so the motor
     // rotates backwards until it doesn't detect it anymore
@@ -164,7 +165,8 @@ bool joint_home_motor(joint_t *joint)
         bool hall_state  = joint_read_hall(joint);
         start_step      |= hall_state * (!start_step * steps_completed); 
         end_step         = steps_completed * (!hall_state && start_step);
-    } while (steps_completed < MAX_HOMING_STEPS);
+    }
+    while (steps_completed < MAX_HOMING_STEPS);
 
     // If the magnet was not found, throw an error
     if (steps_completed == MAX_HOMING_STEPS)

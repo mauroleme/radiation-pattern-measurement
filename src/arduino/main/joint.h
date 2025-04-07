@@ -37,14 +37,6 @@
 
 
 // ===================================
-// Macros
-// ===================================
-
-#define DEG_TO_STEP(deg)  ((deg) * STEPS_PER_DEGREE)
-#define STEP_TO_DEG(step) ((step) / STEPS_PER_DEGREE)
-
-
-// ===================================
 // Configuration Constants
 // ===================================
 
@@ -54,6 +46,14 @@ static const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
 
 // Steps per degree (modifiable at runtime)
 static uint16_t       STEPS_PER_DEGREE    = 16;
+
+
+// ===================================
+// Macros
+// ===================================
+
+#define DEG_TO_STEP(deg)  ((deg) * STEPS_PER_DEGREE)
+#define STEP_TO_DEG(step) ((step) / STEPS_PER_DEGREE)
 
 
 // ===================================

@@ -49,8 +49,8 @@ for motor1Degree = 0:359
         while ~validDataReceived
             try
                 % Send the angles and read the response
-                response = writeread(serialPort, sprintf("%d,%d",
-                                                         motor1Degree,
+                response = writeread(serialPort, sprintf("%d,%d", ...
+                                                         motor1Degree, ...
                                                          motor2Degree));
                 
                 % Process the received measurements
@@ -62,13 +62,13 @@ for motor1Degree = 0:359
                 % If no error, set validDataReceived to true
                 validDataReceived = true;
             catch
-                fprintf("Error received for angles %d,%d. Retrying...\n",
+                fprintf("Error received for angles %d,%d. Retrying...\n", ...
                         motor1Degree, motor2Degree);
             end
         end
         
         % Store the average value of the received measurements in the matrix
-        measurementValues(motor1Degree + 1, motor2Degree + 1) =
+        measurementValues(motor1Degree + 1, motor2Degree + 1) = ...
             mean(currentDegreeSamples(1:samplesPerDegree));
         
     end
