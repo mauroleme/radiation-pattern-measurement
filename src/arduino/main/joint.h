@@ -68,7 +68,7 @@ class Joint
 {
     public:
         Joint(uint8_t step_pin, uint8_t dir_pin,
-              uint8_t en_pin,   uint8_t hall_pin)
+              uint8_t en_pin, uint8_t hall_pin)
             : step_pin_(step_pin), dir_pin_(dir_pin)
             , en_pin_(en_pin), hall_pin_(hall_pin)
             , angle(0), motor_last_active(0), default_direction(CW)
