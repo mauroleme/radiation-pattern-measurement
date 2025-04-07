@@ -1,8 +1,19 @@
 clear;                                                          % Clear variables from workspace
 clc;                                                            % Clear the command window
 
+% Automatically detect the available COM ports
+availablePorts = serialportlist("available");
+
+if isempty(availablePorts)
+    error("No available COM ports detected.");
+end
+
+% Display the list of available ports
+disp("Available COM ports:");
+disp(availablePorts);
+
 % Serial port configuration
-arduinoPort = "COM7";                                           % COM port used by Arduino
+arduinoPort = availablePorts{1};                                % Automatically choose the first available port
 baudRate    = 115200;                                           % Serial communication baudrate (bps)
 
 % Initialize the serial port
@@ -29,26 +40,39 @@ disp("Resquesting measurements for 360 degrees...");
 
 % Initialize the result vector
 samplesPerDegree        = 10;
-measurementValues       = zeros(360, 1);                        % Vector to store final measurements
+measurementValues       = zeros(360, 360);                       % Matrix to store measurements for two motors
 
-for degree = 0:359
-    try
-        response                = writeread(serialPort, "1");
-        currentDegreeSamples    = str2double(split(response, ','));
-        if any(isnan(currentDegreeSamples))
-            error("Invalind response format.");
+for motor1Degree = 0:359
+    for motor2Degree = 0:359
+        
+        validDataReceived = false;
+        while ~validDataReceived
+            try
+                % Send the angles and read the response
+                response = writeread(serialPort, sprintf("%d,%d",
+                                                         motor1Degree,
+                                                         motor2Degree));
+                
+                % Process the received measurements
+                currentDegreeSamples = str2double(split(response, ','));
+                if any(isnan(currentDegreeSamples))
+                    error("Invalid response format.");
+                end
+                
+                % If no error, set validDataReceived to true
+                validDataReceived = true;
+            catch
+                fprintf("Error received for angles %d,%d. Retrying...\n",
+                        motor1Degree, motor2Degree);
+            end
         end
-    catch
-        currentDegreeSamples    = -1 * ones(samplesPerDegree, 1);
+        
+        % Store the average value of the received measurements in the matrix
+        measurementValues(motor1Degree + 1, motor2Degree + 1) =
+            mean(currentDegreeSamples(1:samplesPerDegree));
+        
     end
-    measurementValues(degree + 1)   = mean(currentDegreeSamples);
-    fprintf("Degree %3d: Value %.2f\n", degree, measurementValues(degree + 1));
 end
-
-% Reverse the indexing logic for position 181 (180 degrees) onward, as the
-% returned values are received in a circular order: starting from -1 degree
-% (359 degrees) and progressing to 179 degrees (181 degrees)
-measurementValues(181:360) = flip(measurementValues(181:360));
 
 disp("Collected measurements:");
 disp(measurementValues);
