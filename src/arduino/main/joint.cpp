@@ -2,9 +2,9 @@
  * File     : joint.cpp
  * Author   : Mauro Leme
  * Date     : March 31, 2024
- * Purpose  : Implements the functions declared in `joint.h` to control 
+ * Purpose  : Implements the functions declared in `joint.h' to control 
  *            a robotic joint. Provides motor movement, homing routines, 
- *            direction control, and sensor reading functionality.
+ *            direction control and sensor reading functionality.
  *
  * License  : MIT License
  *
