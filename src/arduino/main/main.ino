@@ -59,7 +59,6 @@ joint_t joint1 =
 };
 
 joint_t joint2 = 
-
 {
     .step_pin  = PD5,
     .dir_pin   = PD4,
