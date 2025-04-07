@@ -94,10 +94,10 @@ class Joint
         // Joint State
         // ===================================
         
-        uint16_t        steps_per_degree    = 16;
-        int32_t         angle               = 0;
-        uint32_t        motor_last_active   = 0;
-        motor_direction default_direction   = CW;
+        uint16_t        steps_per_degree ;
+        int32_t         angle;
+        uint32_t        motor_last_active;
+        motor_direction default_direction;
         
         // ===================================
         // Hardware Pins
