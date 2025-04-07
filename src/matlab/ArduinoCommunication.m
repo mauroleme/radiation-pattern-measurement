@@ -45,32 +45,37 @@ measurementValues       = zeros(360, 360);                       % Matrix to sto
 for motor1Degree = 0:359
     for motor2Degree = 0:359
         
-        validDataReceived = false;
-        while ~validDataReceived
+        while true
             try
                 % Send the angles and read the response
                 response = writeread(serialPort, sprintf("%d,%d", ...
                                                          motor1Degree, ...
                                                          motor2Degree));
                 
-                % Process the received measurements
-                currentDegreeSamples = str2double(split(response, ','));
-                if any(isnan(currentDegreeSamples))
-                    error("Invalid response format.");
+                % Check for Arduino error message
+                if startsWith(response, "Error:")
+                    error("Arduino error: %s", extractAfter(response,
+                                                            "Error:"));
                 end
                 
-                % If no error, set validDataReceived to true
-                validDataReceived = true;
-            catch
-                fprintf("Error received for angles %d,%d. Retrying...\n", ...
-                        motor1Degree, motor2Degree);
+                % Convert and validate numeric data
+                data = str2double(split(response, ','));
+                if any(isnan(data))
+                    error("Invalid numeric format.");
+                end
+                
+                % Store the mean of the first samples
+                measurementValues(motor1Degree + 1, motor2Degree + 1) = ...
+                    mean(data(1:samplesPerDegree));
+                break;
+
+            catch ME
+                fprintf("Error at angles %d,%d: %s. Retrying...\n", ...
+                        motor1Degree, motor2Degree, ME.message);
+                pause(0.1);
             end
         end
-        
-        % Store the average value of the received measurements in the matrix
-        measurementValues(motor1Degree + 1, motor2Degree + 1) = ...
-            mean(currentDegreeSamples(1:samplesPerDegree));
-        
+
     end
 end
 
