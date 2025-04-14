@@ -84,11 +84,10 @@ class Joint
         void SetStepsPerDegree(const uint16_t target_steps_per_degree);
         uint16_t GetStepsPerDegree();
         bool ReadHall();
-                void StepMotor(const motor_direction target_direction);
-
 
     private:
         void SetMotorDirection(const motor_direction target_direction);
+        void StepMotor(const motor_direction target_direction);
         
         // ===================================
         // Joint State
