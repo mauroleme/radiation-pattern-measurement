@@ -48,7 +48,7 @@
 // Configuration Constants
 // ===================================
 
-const uint16_t DELTA_T             = 100;
+const uint16_t DELTA_T             = 1000;
 const uint16_t HOMING_DELAY        = 10000;
 const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
 
@@ -84,20 +84,20 @@ class Joint
         void SetStepsPerDegree(const uint16_t target_steps_per_degree);
         uint16_t GetStepsPerDegree();
         bool ReadHall();
+                void StepMotor(const motor_direction target_direction);
 
 
     private:
         void SetMotorDirection(const motor_direction target_direction);
-        void StepMotor(const motor_direction target_direction);
         
         // ===================================
         // Joint State
         // ===================================
         
-        uint16_t        steps_per_degree;
+        uint16_t        steps_per_degree  = 16;
         int32_t         angle;
         uint32_t        motor_last_active;
-        motor_direction default_direction;
+        motor_direction default_direction = CW;
         
         // ===================================
         // Hardware Pins

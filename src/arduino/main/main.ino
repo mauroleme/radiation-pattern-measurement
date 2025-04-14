@@ -37,21 +37,21 @@
 // Configuration Constants
 // ===================================
 
-#define        J1_STEP_PIN PD6
-#define        J1_DIR_PIN  PD7
-#define        J1_EN_PIN   PB0
-#define        J1_HALL_PIN PC0
+#define J1_STEP_PIN 5
+#define J1_DIR_PIN  4
+#define J1_EN_PIN   12
+#define J1_HALL_PIN A0
 
-#define        J2_STEP_PIN PD5
-#define        J2_DIR_PIN  PD4
-#define        J2_EN_PIN   PB4
-#define        J2_HALL_PIN PC1
+#define J2_STEP_PIN 6
+#define J2_DIR_PIN  7
+#define J2_EN_PIN   8
+#define J2_HALL_PIN A1
 
-#define        RF_PIN      A2
+#define RF_PIN      A2
 
 
 const size_t   SAMPLES  = 10;
-const uint16_t BUF_SIZE = 32;
+const uint16_t BUFFER_SIZE = 32;
 
 
 // ===================================
@@ -89,6 +89,24 @@ inline void log_error(const char *message);
 
 void setup()
 {
+    // Setting up the serial port
+    Serial.setTimeout(1000);
+    Serial.begin(115200);
+    while (!Serial);
+    Serial.println("Serial port initialized successfully!");
+
+    char buffer[10] = {0};
+    while (1)
+    {
+        if (Serial.available() > 0)
+        {
+            size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer));
+            buffer[len] = '\0';
+            if (strncmp(buffer, "Go.", 3) == 0)
+                break;
+        }
+    }
+
     // Setting up the PINs 
     joint1.Init();
     joint2.Init();
@@ -97,12 +115,6 @@ void setup()
     // Activate the motors
     joint1.EnableMotor();
     joint2.EnableMotor();
-
-    // Setting up the serial port
-    Serial.setTimeout(1000);
-    Serial.begin(115200);
-    while (!Serial);
-    Serial.println("Serial port initialized successfully!");
 
     // Set M1 to the origin
     if (joint1.HomeMotor() == false)
@@ -113,12 +125,14 @@ void setup()
     }
     
     // Set M2 to the origin
+    /*
     if (joint2.HomeMotor() == false)
     {
         joint2.DisableMotor();
         log_error("Failed to detect the magnet center of MOTOR 2");
         while (true);
     }
+    */
 
     // Signal MATLAB to begin requesting sample data
     Serial.println("Ready.");
@@ -135,7 +149,7 @@ void loop()
      */
     static int32_t target_angle_joint1;
     static int32_t target_angle_joint2;
-    static char    buf[BUF_SIZE];
+    static char    buffer[BUFFER_SIZE];
     
     static mode_t mode = LISTEN;
     if (mode == LISTEN)
@@ -144,11 +158,11 @@ void loop()
         {
             int32_t temp_target_angle_joint1;
             int32_t temp_target_angle_joint2;
-            size_t  len = Serial.readBytesUntil('\n', buf, BUF_SIZE - 1);
-            buf[len]    = '\0';
+            size_t  len = Serial.readBytesUntil('\n', buffer, BUFFER_SIZE - 1);
+            buffer[len] = '\0';
 
-            if (sscanf(buf, "%ld,%ld", &temp_target_angle_joint1, 
-                                       &temp_target_angle_joint2) == 2)
+            if (sscanf(buffer, "%ld,%ld", &temp_target_angle_joint1, 
+                                          &temp_target_angle_joint2) == 2)
             {
                 target_angle_joint1 = temp_target_angle_joint1;
                 target_angle_joint2 = temp_target_angle_joint2;
@@ -187,7 +201,7 @@ inline void capture_sensor_data(uint16_t *sensor_values, size_t samples)
     for (size_t i = 0; i < samples; i++) 
     {
         sensor_values[i] = analogRead(RF_PIN);
-        delayMicroseconds(10000);
+        delay(100);
     }
 }
 

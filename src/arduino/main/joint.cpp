@@ -89,10 +89,11 @@ void Joint::SetMotorDirection(const motor_direction target_direction)
 {
     *portOutputRegister(digitalPinToPort(dir_pin_)) =
         (target_direction == CW) ?
-        (*portOutputRegister(digitalPinToPort(dir_pin_)) &
-        ~digitalPinToBitMask(dir_pin_)) :
         (*portOutputRegister(digitalPinToPort(dir_pin_)) |
-        digitalPinToBitMask(dir_pin_));
+        digitalPinToBitMask(dir_pin_)) :
+        (*portOutputRegister(digitalPinToPort(dir_pin_)) &
+        ~digitalPinToBitMask(dir_pin_));
+
 }
 
 
@@ -154,7 +155,7 @@ bool Joint::HomeMotor()
     // Case where the sensor is already detecting the magnet, so the motor
     // rotates backwards until it doesn't detect it anymore
     while (ReadHall()) 
-    { 
+    {
         StepMotor((motor_direction)!default_direction);
     }
 
@@ -166,9 +167,16 @@ bool Joint::HomeMotor()
         
         delayMicroseconds(HOMING_DELAY);
         
-        bool hall_state  = ReadHall();
-        start_step      |= hall_state * (!start_step * steps_completed); 
-        end_step         = steps_completed * (!hall_state && start_step);
+        bool hall_state = ReadHall();
+        if (hall_state && start_step == 0)
+        {
+            start_step = steps_completed;
+        }
+        else if (!hall_state && start_step != 0)
+        {
+            end_step = steps_completed;
+            break;
+        }
     }
     while (steps_completed < MAX_HOMING_STEPS);
 
@@ -185,6 +193,9 @@ bool Joint::HomeMotor()
         StepMotor((motor_direction)!default_direction);
         delayMicroseconds(HOMING_DELAY);
     }
+    
+    // Define angle as the origin
+    angle = 0;
 
     return true;
 }
