@@ -37,23 +37,23 @@
 // Configuration Constants
 // ===================================
 
-#define J1_STEP_PIN 5
-#define J1_DIR_PIN  4
-#define J1_EN_PIN   12
+#define J1_STEP_PIN 6
+#define J1_DIR_PIN  7
+#define J1_EN_PIN   8
 #define J1_HALL_PIN A0
 
-#define J2_STEP_PIN 6
-#define J2_DIR_PIN  7
-#define J2_EN_PIN   8
+#define J2_STEP_PIN 5
+#define J2_DIR_PIN  4
+#define J2_EN_PIN   12
 #define J2_HALL_PIN A1
 
-#define RF_PIN      A2
+#define RF_PIN      A3
 
 
 const size_t   SAMPLES     = 10;
 const uint16_t BUFFER_SIZE = 32;
 
-const double   VCC         = 5.0
+const double   VCC         = 5.0;
 const double   SLOPE       = 0.0185; // V / dB 
 const double   INTERCEPT   = 1.8621;
 
@@ -96,6 +96,7 @@ void setup()
     Serial.setTimeout(1000);
     Serial.begin(115200);
     while (!Serial);
+    
     Serial.println("Set?");
     
     // Wait for MATLAB command for initialization
@@ -187,7 +188,7 @@ void loop()
         joint1.RotateMotor(target_angle_joint1);
         joint2.RotateMotor(target_angle_joint2);
         
-        uint16_t sensor_values[SAMPLES] = { 0 };
+        double sensor_values[SAMPLES] = { 0 };
         capture_sensor_data(sensor_values, SAMPLES);
         transmit_sensor_data(sensor_values, SAMPLES);
             
@@ -203,7 +204,7 @@ void loop()
     sleep_joints_after_timeout();
 }
 
-inline void capture_sensor_data(uint16_t *sensor_values, size_t samples)
+inline void capture_sensor_data(double *sensor_values, size_t samples)
 {
     const size_t WAIT_TIME          = 1000; // Time in milliseconds
     const size_t TOTAL_CAPTURE_TIME = 100;  // Time in milliseconds
@@ -223,33 +224,25 @@ inline void capture_sensor_data(uint16_t *sensor_values, size_t samples)
         if (power_dBm < -70.0)
             power_dBm = -70.0; 
         else if (power_dBm > 0.0)
-            power_dB = 0.0; 
+            power_dBm = 0.0; 
         
         sensor_values[i] = power_dBm;
         delay(capture_time_per_sample);
     }
 }
 
-void transmit_sensor_data(uint16_t *sensor_values, size_t samples)
+void transmit_sensor_data(double *sensor_values, size_t samples)
 {
-    /* The buffer contains the values read from the sensor separated by commas:
-     *      - 5 chars for each number;
-     *      - 1 char for each comma;
-     *      - 1 char for null terminator.
-     */
-    char   buffer[samples * 6];
+    char   buffer[8 * samples]; 
     size_t index = 0;
-    
+
     for (size_t i = 0; i < samples; i++)
     {
-        index += sprintf(&buffer[index], "%u,", sensor_values[i]);
+        char temp[10];
+        dtostrf(sensor_values[i], 5, 2, temp);
+        index += sprintf(&buffer[index], "%s%s", temp, (i < samples - 1) ? "," : "");
     }
-    
-    if (index)
-    {
-        buffer[--index] = '\0';
-    }
-    
+
     Serial.println(buffer);
 }
 

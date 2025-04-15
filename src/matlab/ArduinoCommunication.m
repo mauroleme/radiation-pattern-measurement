@@ -20,32 +20,27 @@ baudRate                = 115200;                               % Serial communi
 serialPort              = serialport(arduinoPort, baudRate);    % Configure the serial port
 serialPort.Timeout      = 30;                                   % Set the timeout duration (seconds)
 configureTerminator(serialPort, "CR/LF");                       % Set the line terminator
-pause(5);
 
+% Wait for Arduino to initialize the serial port
+waitForArduino(serialPort, "Set?", ...
+    "Waiting for Arduino Serial Port to initialize...");
+
+% Command and wait Arduino to home the joints
 writeline(serialPort, "Go.");
-disp("Waiting for Arduino to initialize...");
-while true
-    try
-        response = safeWriteRead(serialPort);                   % Wait for initialization
-        if strcmp(response, "Ready.")                           % Check for successful initialization
-            break;
-        end
-    catch
-        pause(0.5);                                             % Retry after a short delay
-    end
-end
-
-disp("Requesting measurements for 360 degrees...");
+waitForArduino(serialPort, "Ready.", ...
+    "Waiting for Arduino to finish homing the joints...");
 
 % Initialize the result vector
 samplesPerDegree        = 10;
 degreeResolution        = 5;                                     % Must be an integer
-theta                   = 0:0;                                   % Azimuth
-phi                     = 0:degreeResolution:359;                % Elevation
+theta                   = 0:degreeResolution:359;                % Azimuth
+phi                     = 0:0;                                   % Elevation
 measurementValues       = zeros(length(theta), length(phi));     % Matrix to store measurements for two motors
 
-for motor2Degree = theta
-    for motor1Degree = phi
+% Start sampling the antenna
+disp("Requesting measurements...");
+for motor2Degree = phi
+    for motor1Degree = theta
         while true
             try
                 % Send the angles and read the response
@@ -80,6 +75,9 @@ disp(measurementValues);
 
 clear serialPort;                                               % Close the serial port
 
+figure;
+polarplot(deg2rad(theta), measurementValues(:,1));
+
 
 % Function for safe serial communication with error handling
 function response = safeWriteRead(serialPort, message)
@@ -95,5 +93,19 @@ function response = safeWriteRead(serialPort, message)
         end
     catch ME
         error("Communication error: %s", ME.message);           % Throw a detailed error message
+    end
+end
+
+function waitForArduino(serialPort, expectedResponse, message)
+    disp(message);
+    while true
+        try
+            response = safeWriteRead(serialPort);
+            if strcmp(response, expectedResponse)
+                break;
+            end
+        catch
+            pause(0.5);
+        end
     end
 end
