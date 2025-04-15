@@ -50,9 +50,12 @@
 #define RF_PIN      A2
 
 
-const size_t   SAMPLES  = 10;
+const size_t   SAMPLES     = 10;
 const uint16_t BUFFER_SIZE = 32;
 
+const double   VCC         = 5.0
+const double   SLOPE       = 0.0185; // V / dB 
+const double   INTERCEPT   = 1.8621;
 
 // ===================================
 // Motor Control Structures
@@ -93,17 +96,21 @@ void setup()
     Serial.setTimeout(1000);
     Serial.begin(115200);
     while (!Serial);
-    Serial.println("Serial port initialized successfully!");
-
-    char buffer[10] = {0};
-    while (1)
+    Serial.println("Set?");
+    
+    // Wait for MATLAB command for initialization
     {
-        if (Serial.available() > 0)
+        char buffer[10] = {0};
+        while (1)
         {
-            size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer));
-            buffer[len] = '\0';
-            if (strncmp(buffer, "Go.", 3) == 0)
-                break;
+            if (Serial.available() > 0)
+            {
+                size_t len = Serial.readBytesUntil('\n', buffer,
+                                                   sizeof(buffer));
+                buffer[len] = '\0';
+                if (strncmp(buffer, "Go.", 3) == 0)
+                    break;
+            }
         }
     }
 
@@ -198,10 +205,28 @@ void loop()
 
 inline void capture_sensor_data(uint16_t *sensor_values, size_t samples)
 {
+    const size_t WAIT_TIME          = 1000; // Time in milliseconds
+    const size_t TOTAL_CAPTURE_TIME = 100;  // Time in milliseconds
+    
+
+    // Standby
+    delay(WAIT_TIME - TOTAL_CAPTURE_TIME);
+    
+    size_t capture_time_per_sample = TOTAL_CAPTURE_TIME / samples;
     for (size_t i = 0; i < samples; i++) 
     {
-        sensor_values[i] = analogRead(RF_PIN);
-        delay(100);
+        int    raw_rf_value = analogRead(RF_PIN);
+        double voltage      = raw_rf_value * (VCC / 1023.0);
+        double power_dBm    = (voltage - INTERCEPT) / SLOPE;
+        
+        // Limit the power
+        if (power_dBm < -70.0)
+            power_dBm = -70.0; 
+        else if (power_dBm > 0.0)
+            power_dB = 0.0; 
+        
+        sensor_values[i] = power_dBm;
+        delay(capture_time_per_sample);
     }
 }
 
