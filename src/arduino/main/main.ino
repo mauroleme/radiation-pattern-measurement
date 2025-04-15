@@ -101,7 +101,7 @@ void setup()
     
     // Wait for MATLAB command for initialization
     {
-        char buffer[10] = {0};
+        char buffer[10] = { 0 };
         while (1)
         {
             if (Serial.available() > 0)
@@ -240,7 +240,8 @@ void transmit_sensor_data(double *sensor_values, size_t samples)
     {
         char temp[10];
         dtostrf(sensor_values[i], 5, 2, temp);
-        index += sprintf(&buffer[index], "%s%s", temp, (i < samples - 1) ? "," : "");
+        index += sprintf(&buffer[index], "%s%s", temp,
+                         (i < samples - 1) ? "," : "");
     }
 
     Serial.println(buffer);
