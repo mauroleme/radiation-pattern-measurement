@@ -204,7 +204,7 @@ void loop()
     sleep_joints_after_timeout();
 }
 
-inline void capture_sensor_data(double *sensor_values, size_t samples)
+void capture_sensor_data(double *sensor_values, size_t samples)
 {
     const size_t WAIT_TIME          = 1000; // Time in milliseconds
     const size_t TOTAL_CAPTURE_TIME = 100;  // Time in milliseconds
