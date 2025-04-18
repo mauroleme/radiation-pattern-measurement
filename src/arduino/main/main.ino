@@ -84,7 +84,7 @@ Joint joint2 =
 // Function Prototypes
 // ===================================
 
-inline void capture_sensor_data(uint16_t *sensor_values, size_t samples);
+void capture_sensor_data(uint16_t *sensor_values, size_t samples);
 void transmit_sensor_data(uint16_t *sensor_values, size_t samples);
 inline void sleep_joints_after_timeout();
 inline void log_error(const char *message);
