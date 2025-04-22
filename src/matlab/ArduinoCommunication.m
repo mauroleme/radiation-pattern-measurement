@@ -22,12 +22,12 @@ serialPort.Timeout      = 30;                                   % Set the timeou
 configureTerminator(serialPort, "CR/LF");                       % Set the line terminator
 
 % Wait for Arduino to initialize the serial port
-waitForArduino(serialPort, "Set?", ...
+waitForArduino(serialPort, "Ready?", ...
     "Waiting for Arduino Serial Port to initialize...");
 
 % Command and wait Arduino to home the joints
-writeline(serialPort, "Go.");
-waitForArduino(serialPort, "Ready.", ...
+writeline(serialPort, "Set.");
+waitForArduino(serialPort, "Go.", ...
     "Waiting for Arduino to finish homing the joints...");
 
 % Initialize the result vector

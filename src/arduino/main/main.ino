@@ -97,7 +97,7 @@ void setup()
     Serial.begin(115200);
     while (!Serial);
     
-    Serial.println("Set?");
+    Serial.println("Ready?");
     
     // Wait for MATLAB command for initialization
     {
@@ -109,7 +109,7 @@ void setup()
                 size_t len = Serial.readBytesUntil('\n', buffer,
                                                    sizeof(buffer));
                 buffer[len] = '\0';
-                if (strncmp(buffer, "Go.", 3) == 0)
+                if (strncmp(buffer, "Set.", 4) == 0)
                     break;
             }
         }
@@ -143,7 +143,7 @@ void setup()
     */
 
     // Signal MATLAB to begin requesting sample data
-    Serial.println("Ready.");
+    Serial.println("Go.");
 }
 
 void loop()
