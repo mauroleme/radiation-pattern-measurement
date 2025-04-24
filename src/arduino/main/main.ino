@@ -53,10 +53,6 @@
 const size_t   SAMPLES     = 10;
 const uint16_t BUFFER_SIZE = 32;
 
-const double   VCC         = 5.0;
-const double   SLOPE       = 0.0185; // V / dB 
-const double   INTERCEPT   = 1.8621;
-
 // ===================================
 // Motor Control Structures
 // ===================================
@@ -208,7 +204,6 @@ void capture_sensor_data(double *sensor_values, size_t samples)
 {
     const size_t WAIT_TIME          = 1000; // Time in milliseconds
     const size_t TOTAL_CAPTURE_TIME = 100;  // Time in milliseconds
-    
 
     // Standby
     delay(WAIT_TIME - TOTAL_CAPTURE_TIME);
@@ -217,14 +212,7 @@ void capture_sensor_data(double *sensor_values, size_t samples)
     for (size_t i = 0; i < samples; i++) 
     {
         int    raw_rf_value = analogRead(RF_PIN);
-        double voltage      = raw_rf_value * (VCC / 1023.0);
-        double power_dBm    = (voltage - INTERCEPT) / SLOPE;
-        
-        // Limit the power
-        if (power_dBm < -70.0)
-            power_dBm = -70.0; 
-        else if (power_dBm > 0.0)
-            power_dBm = 0.0; 
+        double power_dBm    = (double)raw_rf_value * 0.2722 - 97.115;
         
         sensor_values[i] = power_dBm;
         delay(capture_time_per_sample);

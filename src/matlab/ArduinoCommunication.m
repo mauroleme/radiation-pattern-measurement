@@ -77,7 +77,7 @@ clear serialPort;                                               % Close the seri
 
 figure;
 polarplot(deg2rad(theta), measurementValues(:,1));
-
+rlim([-40 0]);  
 
 % Function for safe serial communication with error handling
 function response = safeWriteRead(serialPort, message)
