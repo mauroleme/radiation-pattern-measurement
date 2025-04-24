@@ -50,7 +50,7 @@
 #define RF_PIN      A3
 
 
-const size_t   SAMPLES     = 10;
+const size_t   SAMPLES     = 100;
 const uint16_t BUFFER_SIZE = 32;
 
 // ===================================
