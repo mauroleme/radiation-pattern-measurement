@@ -33,9 +33,10 @@ waitForArduino(serialPort, "Go.", ...
 % Initialize the result vector
 samplesPerDegree        = 10;
 degreeResolution        = 5;                                     % Must be an integer
-theta                   = 0:degreeResolution:359;                % Azimuth
+theta                   = -180:degreeResolution:179;             % Azimuth
 phi                     = 0:0;                                   % Elevation
-measurementValues       = zeros(length(theta), length(phi));     % Matrix to store measurements for two motors
+measurementValues       = zeros(length(theta) + 1, ... 
+                                length(phi) + 1);                % Matrix to store measurements for two motors
 
 % Start sampling the antenna
 disp("Requesting measurements...");
@@ -55,8 +56,8 @@ for motor2Degree = phi
                 end
 
                 % Store the mean of the first samples
-                rowIndex = motor1Degree / degreeResolution + 1;
-                colIndex = motor2Degree / degreeResolution + 1;
+                rowIndex = mod(motor1Degree, 360) / degreeResolution + 1;
+                colIndex = mod(motor2Degree, 360) / degreeResolution + 1;
                 measurementValues(rowIndex, colIndex) = ...
                     mean(data(1:samplesPerDegree));
                 break;
@@ -70,14 +71,18 @@ for motor2Degree = phi
     end
 end
 
+% Copy the 0 degree row to the 360 degree row to wrap it
+measurementValues(end,:) = measurementValues(1,:);
+
 disp("Collected measurements:");
 disp(measurementValues);
 
 clear serialPort;                                               % Close the serial port
 
 figure;
-polarplot(deg2rad(theta), measurementValues(:,1));
-rlim([-40 0]);  
+thetaWrapped = [theta 360];
+polarplot(deg2rad(thetaWrapped), measurementValues(:,1));
+rlim([-40 0]);
 
 % Function for safe serial communication with error handling
 function response = safeWriteRead(serialPort, message)
@@ -106,6 +111,7 @@ function waitForArduino(serialPort, expectedResponse, message)
             end
         catch
             pause(0.5);
+    const 
         end
     end
 end
