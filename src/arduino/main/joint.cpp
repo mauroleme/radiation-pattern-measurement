@@ -103,11 +103,10 @@ void Joint::SetMotorDirection(const motor_direction target_direction)
 
 void Joint::RotateMotor(int32_t target_angle)
 {
-    target_angle              = (target_angle % 360 + 360) % 360;
-    int32_t         diff      = (target_angle - angle + 540) % 360 - 180;    
-    uint32_t        steps     = DEG_TO_STEP((diff ^ (diff >> 31)) - 
-                                            (diff >> 31));
-    motor_direction direction = (diff >= 0) ? default_direction :
+    target_angle              %= 360;
+    int32_t         diff       = target_angle - angle;    
+    uint32_t        steps      = DEG_TO_STEP(abs(diff));
+    motor_direction direction  = (diff >= 0) ? default_direction :
                                               !default_direction;
 
     for (uint32_t i = 0; i < steps; i++)
