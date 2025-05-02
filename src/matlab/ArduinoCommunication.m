@@ -13,12 +13,12 @@ disp("Available COM ports:");
 disp(availablePorts);
 
 % Serial port configuration
-arduinoPort             = availablePorts{1};                    % Automatically choose the first available port
-baudRate                = 115200;                               % Serial communication baudrate (bps)
+arduinoPort = availablePorts{1};                                % Automatically choose the first available port
+baudRate    = 115200;                                           % Serial communication baudrate (bps)
 
 % Initialize the serial port
-serialPort              = serialport(arduinoPort, baudRate);    % Configure the serial port
-serialPort.Timeout      = 30;                                   % Set the timeout duration (seconds)
+serialPort         = serialport(arduinoPort, baudRate);         % Configure the serial port
+serialPort.Timeout = 30;                                        % Set the timeout duration (seconds)
 configureTerminator(serialPort, "CR/LF");                       % Set the line terminator
 
 % Wait for Arduino to initialize the serial port
@@ -31,12 +31,11 @@ waitForArduino(serialPort, "Go.", ...
     "Waiting for Arduino to finish homing the joints...");
 
 % Initialize the result vector
-samplesPerDegree        = 10;
-degreeResolution        = 5;                                     % Must be an integer
-theta                   = -180:degreeResolution:179;             % Azimuth
-phi                     = 0:0;                                   % Elevation
-measurementValues       = zeros(length(theta) + 1, ... 
-                                length(phi) + 1);                % Matrix to store measurements for two motors
+degreeResolution  = 5;                                          % Must be an integer
+theta             = -180:degreeResolution:179;                  % Azimuth
+phi               = 0:0;                                        % Elevation
+measurementValues = zeros(length(theta) + 1, ... 
+                                length(phi) + 1);               % Matrix to store measurements for two motors
 
 % Start sampling the antenna
 disp("Requesting measurements...");
@@ -59,7 +58,7 @@ for motor2Degree = phi
                 rowIndex = mod(motor1Degree, 360) / degreeResolution + 1;
                 colIndex = mod(motor2Degree, 360) / degreeResolution + 1;
                 measurementValues(rowIndex, colIndex) = ...
-                    mean(data(1:samplesPerDegree));
+                    mean(data(1:end));
                 break;
 
             catch ME
@@ -111,7 +110,6 @@ function waitForArduino(serialPort, expectedResponse, message)
             end
         catch
             pause(0.5);
-    const 
         end
     end
 end
