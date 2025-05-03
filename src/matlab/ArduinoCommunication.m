@@ -80,8 +80,11 @@ clear serialPort;                                               % Close the seri
 
 figure;
 thetaWrapped = [theta 360];
-polarplot(deg2rad(thetaWrapped), measurementValues(:,1));
-rlim([-40 0]);
+thetaclosed = [theta theta(1)];  % repete o -180° no final
+measurementClosed = [measurementValues(1:end-1,1); measurementValues(1,1)];
+polarplot(deg2rad(thetaclosed), measurementClosed);
+rlim([-65 0]);
+disp([measurementClosed(:)])
 
 % Function for safe serial communication with error handling
 function response = safeWriteRead(serialPort, message)

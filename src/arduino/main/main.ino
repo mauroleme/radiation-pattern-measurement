@@ -120,6 +120,7 @@ void setup()
     joint1.EnableMotor();
     joint2.EnableMotor();
 
+    
     // Set M1 to the origin
     if (joint1.HomeMotor() == false)
     {
