@@ -32,7 +32,8 @@ waitForArduino(serialPort, "Go.", ...
 
 % Initialize the result vector
 degreeResolution  = 5;                                          % Must be an integer
-theta             = -180:degreeResolution:179;                  % Azimuth
+theta             = [0:degreeResolution:180 ...
+                     -1:degreeResolution:-179];                 % Azimuth
 phi               = 0:0;                                        % Elevation
 measurementValues = zeros(length(theta) + 1, ... 
                                 length(phi) + 1);               % Matrix to store measurements for two motors
@@ -79,10 +80,9 @@ disp(measurementValues);
 clear serialPort;                                               % Close the serial port
 
 figure;
-thetaWrapped = [theta 360];
-thetaclosed = [theta theta(1)];  % repete o -180° no final
+thetaClosed       = [theta theta(1)];                           % Repeat the final -180 degree
 measurementClosed = [measurementValues(1:end-1,1); measurementValues(1,1)];
-polarplot(deg2rad(thetaclosed), measurementClosed);
+polarplot(deg2rad(thetaClosed), measurementClosed);
 rlim([-65 0]);
 disp([measurementClosed(:)])
 
