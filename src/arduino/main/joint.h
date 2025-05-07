@@ -72,6 +72,7 @@ class Joint
             : step_pin_(step_pin), dir_pin_(dir_pin)
             , en_pin_(en_pin), hall_pin_(hall_pin)
             , angle(0), motor_last_active(0), default_direction(CW)
+            , steps_per_degree(16)
             {}
         void Init();
         void EnableMotor();
@@ -93,10 +94,10 @@ class Joint
         // Joint State
         // ===================================
         
-        uint16_t        steps_per_degree  = 16;
+        uint16_t        steps_per_degree;
         int32_t         angle;
         uint32_t        motor_last_active;
-        motor_direction default_direction = CW;
+        motor_direction default_direction;
         
         // ===================================
         // Hardware Pins
