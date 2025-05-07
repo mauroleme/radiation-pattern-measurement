@@ -50,8 +50,10 @@
 #define RF_PIN      A3
 
 
-const size_t   SAMPLES     = 100;
-const uint16_t BUFFER_SIZE = 32;
+const size_t   SAMPLES      = 100;
+const uint16_t BUFFER_SIZE  = 32;
+const uint32_t SAMPLE_TIME  = 1000; // Time in milliseconds
+const uint32_t CAPTURE_TIME = 100;  // Time in milliseconds
 
 // ===================================
 // Motor Control Structures
@@ -189,7 +191,7 @@ void loop()
         joint2.RotateMotor(target_angle_joint2);
         
         double sensor_values[SAMPLES] = { 0 };
-        capture_sensor_data(sensor_values, SAMPLES);
+        capture_sensor_data(sensor_values, SAMPLES, SAMPLE_TIME, CAPTURE_TIME);
         transmit_sensor_data(sensor_values, SAMPLES);
             
         mode = LISTEN;
@@ -204,15 +206,13 @@ void loop()
     sleep_joints_after_timeout();
 }
 
-void capture_sensor_data(double *sensor_values, size_t samples)
+void capture_sensor_data(double *sensor_values, size_t samples,
+                         uint32_t sample_time, uint32_t capture_time)
 {
-    const size_t WAIT_TIME          = 1000; // Time in milliseconds
-    const size_t TOTAL_CAPTURE_TIME = 100;  // Time in milliseconds
-
     // Standby
-    delay(WAIT_TIME - TOTAL_CAPTURE_TIME);
+    delay(sample_time - capture_time);
     
-    size_t capture_time_per_sample = TOTAL_CAPTURE_TIME / samples;
+    size_t capture_time_per_sample = capture_time / samples;
     for (size_t i = 0; i < samples; i++) 
     {
         int    raw_rf_value = analogRead(RF_PIN);
