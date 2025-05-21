@@ -48,7 +48,7 @@
 // Configuration Constants
 // ===================================
 
-const uint16_t DELTA_T             = 1000;
+const uint16_t DELTA_T             = 500;
 const uint16_t HOMING_DELAY        = 10000;
 const uint32_t MOTOR_SLEEP_TIMEOUT = 10000000;
 

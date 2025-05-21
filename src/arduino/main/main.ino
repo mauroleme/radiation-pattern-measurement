@@ -119,7 +119,8 @@ void setup()
     pinMode(RF_PIN, INPUT);
 
     // Setting up the usteps to degree conversion
-    // joint1.SetStepsPerDegree(56);
+    joint1.SetStepsPerDegree(56);
+    joint2.SetStepsPerDegree(16); // By default, it's this value
 
     // Activate the motors
     joint1.EnableMotor();
