@@ -56,8 +56,10 @@ for motor2Degree = phi
                 end
 
                 % Store the mean of the first samples
-                rowIndex = mod(motor1Degree, 360) / degreeResolution + 1;
-                colIndex = mod(motor2Degree, 360) / degreeResolution + 1;
+                rowIndex = floor(mod(motor1Degree, 360) /...
+                                 degreeResolution) + 1;
+                colIndex = floor(mod(motor2Degree, 360) /...
+                                 degreeResolution) + 1;
                 measurementValues(rowIndex, colIndex) = ...
                     mean(data(1:end));
                 break;
