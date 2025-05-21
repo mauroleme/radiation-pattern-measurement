@@ -106,7 +106,7 @@ void setup()
             {
                 size_t len = Serial.readBytesUntil('\n', buffer,
                                                    sizeof(buffer));
-                buffer[len] = '\0';
+                buffer[len - 1] = '\0';
                 if (strncmp(buffer, "Set.", 4) == 0)
                     break;
             }
@@ -170,7 +170,7 @@ void loop()
             int32_t temp_target_angle_joint1;
             int32_t temp_target_angle_joint2;
             size_t  len = Serial.readBytesUntil('\n', buffer, BUFFER_SIZE - 1);
-            buffer[len] = '\0';
+            buffer[len - 1] = '\0';
 
             if (sscanf(buffer, "%ld,%ld", &temp_target_angle_joint1, 
                                           &temp_target_angle_joint2) == 2)
