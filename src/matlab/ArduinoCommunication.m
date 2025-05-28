@@ -18,7 +18,7 @@ baudRate    = 115200;                                           % Serial communi
 
 % Initialize the serial port
 serialPort         = serialport(arduinoPort, baudRate);         % Configure the serial port
-serialPort.Timeout = 30;                                        % Set the timeout duration (seconds)
+serialPort.Timeout = 120;                                       % Set the timeout duration (seconds)
 configureTerminator(serialPort, "CR/LF");                       % Set the line terminator
 
 % Wait for Arduino to initialize the serial port
@@ -32,11 +32,11 @@ waitForArduino(serialPort, "Go.", ...
 
 % Initialize the result vector
 degreeResolution  = 5;                                          % Must be an integer
-theta             = [0:degreeResolution:180, ...
-                     -1:-degreeResolution:-179];                 % Azimuth
+theta             = [0:degreeResolution:180, ...                % Azimuth
+                     -degreeResolution:-degreeResolution:-180+degreeResolution];
 phi               = 0:0;                                        % Elevation
 measurementValues = zeros(length(theta) + 1, ... 
-                                length(phi) + 1);               % Matrix to store measurements for two motors
+                          length(phi) + 1);                     % Matrix to store measurements for two motors
 
 % Start sampling the antenna
 disp("Requesting measurements...");
@@ -65,43 +65,54 @@ for motor2Degree = phi
                 break;
 
             catch ME
-                fprintf("Error at angles %d,%d: %s. Retrying...\n", ...
-                        motor1Degree, motor2Degree, ME.message);
+                fprintf("Error at angles %d,%d: %s. Response was: %s. Retrying...\n", ...
+                        motor1Degree, motor2Degree, ME.message, response);
                 pause(0.1);
             end
         end
     end
 end
 
-% Copy the 0 degree row to the 360 degree row to wrap it
-measurementValues(end,:) = measurementValues(1,:);
-
-disp("Collected measurements:");
-disp(measurementValues);
-
 clear serialPort;                                               % Close the serial port
 
+% Map theta [-180,180] to [0,360]
+mappedAngles            = mod(theta, 360);
+[sortedAngles, sortIdx] = sort(mappedAngles);
+sortedMeasurementValues = measurementValues(sortIdx);
+
+% Close the circle for polarplot continuity
+fullAnglesClosed        = [sortedAngles, sortedAngles(1)];
+MeasurementValuesClosed = [sortedMeasurementValues, ...
+                           sortedMeasurementValues(1)];
+
+% Rotate plot by +270 deg so that 180° becomes 90° (top)
+rotatedAngles = mod(fullAnglesClosed + 270, 360);
+
+% Plot
 figure;
-thetaClosed       = [theta theta(1)];                           % Repeat the final -180 degree
-measurementClosed = [measurementValues(1:end-1,1); measurementValues(1,1)];
-polarplot(deg2rad(thetaClosed), measurementClosed);
-rlim([-65 0]);
-disp([measurementClosed(:)])
+polarplot(deg2rad(rotatedAngles), MeasurementValuesClosed, 'LineWidth', 1.5);
+set(gca, 'ThetaZeroLocation','top','ThetaDir','counterclockwise');
+rlim([-75 0]);
+title('Antenna Radiation Pattern');
+text(-0.2, -0.9, 'Azimuth', 'Units', 'normalized');
+text(-0.9, -0.2, 'Gain (dB)', 'Units', 'normalized');
+
+disp("Collected measurements:");
+disp(MeasurementValuesClosed(:));
 
 % Function for safe serial communication with error handling
 function response = safeWriteRead(serialPort, message)
     try
         if nargin > 1
-            writeline(serialPort, message);                     % Send data
+            writeline(serialPort, message);
         end
-        response = readline(serialPort);                        % Read response from Arduino
-        
-        % Check for Arduino error message
+
+        response = readline(serialPort);
         if startsWith(response, "Error: ")
             error("Arduino error: %s", extractAfter(response, "Error: "));
         end
     catch ME
-        error("Communication error: %s", ME.message);           % Throw a detailed error message
+        error("Communication error: %s", ME.message);
     end
 end
 
