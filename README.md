@@ -1,7 +1,7 @@
 # Radiation Pattern Measurement
 This repository includes the source files for a project aimed at measuring the
 radiation pattern of various types of antenas. The project involves controlling 
-two stepper motos for precise antenna positioning and using an RF radiation
+two stepper motors for precise antenna positioning and using an RF radiation
 pattern measurement sensor integrated in the Arduino-based system. The
 collected data is transmited to MATLAB, where it is used to generate a model
 based of the antenna's radiation pattern and compare it to the antenna's ideal
