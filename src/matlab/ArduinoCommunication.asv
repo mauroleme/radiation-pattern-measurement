@@ -85,18 +85,15 @@ fullAnglesClosed        = [sortedAngles, sortedAngles(1)];
 MeasurementValuesClosed = [sortedMeasurementValues, ...
                            sortedMeasurementValues(1)];
 
-invrt = MeasurementValuesClosed;
-invrt(38:72) = invrt(72:-1:38);
-
 
 % Rotate plot by +270 deg so that 180° becomes 90° (top)
-rotatedAngles = mod(fullAnglesClosed + 90, 360);
+rotatedAngles = mod(fullAnglesClosed + 270, 360);
 
 
 
 % Plot
 figure;
-polarplot(deg2rad(rotatedAngles), invrt, 'LineWidth', 1.5);
+polarplot(deg2rad(rotatedAngles), MeasurementValuesClosed, 'LineWidth', 1.5);
 set(gca, 'ThetaZeroLocation','top','ThetaDir','counterclockwise');
 rlim([-75 0]);
 title('Antenna Radiation Pattern');
@@ -105,7 +102,6 @@ text(-0.9, -0.2, 'Gain (dB)', 'Units', 'normalized');
 
 disp("Collected measurements:");
 disp(MeasurementValuesClosed(:));
-disp(invrt(:));
 
 % Function for safe serial communication with error handling
 function response = safeWriteRead(serialPort, message)
