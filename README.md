@@ -1,4 +1,4 @@
-# Radiation Pattern Measurement
+# Radiation Pattern Measurement System
 This repository includes the source files for a project designed to measure 
 the radiation pattern of various antenas. The project involves controlling two
 stepper motos for precise antenna positioning and using an RF radiation pattern
